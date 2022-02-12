@@ -18,8 +18,7 @@ $ordersTableName = "{$wpdb->prefix}sapwc_orders";
 $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
 
   //CREAMOS TABLAS PARA MANEJO INTERNO DE PEDIDOS Y SUS PRODUCTOS
-
-
+  //Tabla interna de pedidos
   $createOrdersTableQuery = "CREATE TABLE IF NOT EXISTS {$ordersTableName} (
     id INT NOT NULL AUTO_INCREMENT,
     transportGuide varchar(100) NOT NULL,
@@ -37,6 +36,7 @@ $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
 $wpdb->query($createOrdersTableQuery);
 
 
+//tabla de productos del pedido
   $createOrderProductsTableQuery = "CREATE TABLE IF NOT EXISTS {$orderProductsTableName} (
     order_product_id INT NOT NULL AUTO_INCREMENT,
     mpOrder INT NOT NULL,
@@ -198,11 +198,14 @@ add_action( 'rest_api_init', function () {
       'callback' => 'changeOrderStatus',
       'args' => array(
         'id' => array(
+          //validacion del id
           'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
             return is_numeric( $param );
           }
         ),
       ),
+      //valida que el usuario tenga la capacidad
       'permission_callback' => function () {
         return current_user_can( 'sap_change_status' );
       }
@@ -215,15 +218,23 @@ add_action( 'rest_api_init', function () {
 
     $id = $request["id"];
 
+    //Tabla de pedidos del woocommerce, clientes y tabla interna
     $ordersTable = "{$wpdb->prefix}wc_order_stats";
     $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $customersTable = "{$wpdb->prefix}wc_customer_lookup";
 
-    $ordersTableExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
+    //Validamos que existan tablas
+    $ordersTableInternExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
+    $ordersTableExists = $wpdb->query("SHOW TABLES like {$ordersTable}");
     $customersTableExists = $wpdb->query("SHOW TABLES like {$customersTable}");
 
-    if (sizeof($ordersTableExists) > 0 && sizeof($customersTableExists) > 0 ) {
-      //buscamos pedido por id extraido de los params de la request.
+    if (
+    sizeof($ordersTableInternExists) > 0 && 
+    sizeof($customersTableExists) > 0 && 
+    sizeof($ordersTableExists) > 0 ) {
+
+    //buscamos pedido por id extraido de los params de la request.
+    //query del pedido
     $query = "SELECT 
     orderW.mpOrder, orderW.transportGuide, 
     CONCAT_WS(' ', customer.first_name, customer.last_name) as customer_fullname,
@@ -235,7 +246,10 @@ add_action( 'rest_api_init', function () {
       ON orderW.customer_id = customer.customer_id
     WHERE orderW.mpOrder = {$id}";
 
+    //ejecutamos query del pedido
     $orderById = $wpdb->get_results($query, ARRAY_A);
+
+    //inicializamos variables de data y statuscode para devolverlas en la response de la peticion
     $data;
     $statusCode;
 
@@ -257,7 +271,7 @@ add_action( 'rest_api_init', function () {
             "error" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio"
           );
           $statusCode = 500;
-        }elseif($update === 0){
+        }/* elseif($update === 0){
   
           $data = array(
             "status" => "200",
@@ -265,7 +279,7 @@ add_action( 'rest_api_init', function () {
           );
           $statusCode = 200;
           
-        }else{
+        } */else{
   
           $data = array(
             "status" => "201",
