@@ -92,6 +92,11 @@ $wpdb->query($createOrdersTableQuery);
 
 function DesactivateSAPIntegration(){
 
+  //DESACTIVAMOS CRON DE EXXE
+
+  /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
+  wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
+
  /*  global $wpdb;
 
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
@@ -375,6 +380,63 @@ function getOrderInfoAfterCheckoutProcessed($order_id) {
 }
 
 add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' );
+
+
+//CODIGO PARA ACTIVAR CRON
+
+//filtro para anadir intervalo de 5 segundos para el cron - SOLO PARA FINES DE DESARROLLO Y PRUEBAS
+
+add_filter( 'cron_schedules', 'example_add_cron_interval' );
+function example_add_cron_interval( $schedules ) { 
+    $schedules['five_seconds'] = array(
+        'interval' => 5,
+        'display'  => esc_html__( 'Every Five Seconds' ), );
+    return $schedules;
+}
+
+//funcion que accede a todos los pedidos despachados y consulta su estado en exxe
+function exxeCron(){
+
+  global $wpdb;
+
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+  //hacemos query de todos los pedidos que ya hayan sido despachados por SAP:
+  $ordersSent = "SELECT
+  orderS.id, orderS.mpOrder, orderS.transportGuide
+  FROM
+  {$ordersInternTable} as orderS
+  WHERE
+  orderS.sapStatus = 'despachado'
+  ";
+
+  $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
+
+  //en caso de haber pedidos despachados, por cada uno extraemos su estado de exxe y actualizamos
+  if (sizeof($ordersSentResults) > 0) {
+    foreach ($ordersSentResults as $key) {
+      
+      //En teoria aqui iria el codigo para extraer estado de guia de EXXE
+      $exxeStatus = "statusExxe1";
+      $order_id = $key["id"];
+
+      //ejecutamos actualizacion
+      $wpdb->update($ordersInternTable, array("exxeStatus" => $exxeStatus), array("id" => $order_id));
+  
+  
+    }
+  }
+};
+
+//anadimos custom hook con funcion de cron y lo programamos
+
+/* add_action( 'sap_exxe_integration_cron', 'exxeCron');
+if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
+  //scheduleamos a 5 segundos - DESARROLLO
+  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  //scheduleamos a 1hora
+  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+} */
 
 
 
