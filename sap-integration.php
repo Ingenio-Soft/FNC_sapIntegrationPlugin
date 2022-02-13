@@ -8,6 +8,27 @@
  */
 
 
+//CODIGO A COLOCAR EN PLUGIN EPAYCO WOOCOMMERCE, PARA INSERTAR EN NUESTRA TABLA EL TRANSPORTGUIDE
+function insertTransportGuideInInternTable($order_id, $transport_guide){
+
+  global $wpdb;
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
+
+  try {
+
+    $wpdb->insert(
+      $ordersTransportGuideTableName, 
+      array(
+        "mpOrder" => $order_id,
+        "transportGuide" => $transport_guide,
+      ));
+
+  } catch (\Throwable $th) {
+    $error = "Hubo un error al intentar insertar el numero de guia. {$th}";
+  }
+
+}
+
 
 function ActivateSAPIntegration(){
 
@@ -15,13 +36,14 @@ function ActivateSAPIntegration(){
 
 
 $ordersTableName = "{$wpdb->prefix}sapwc_orders";
+$ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
 $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
 
   //CREAMOS TABLAS PARA MANEJO INTERNO DE PEDIDOS Y SUS PRODUCTOS
   //Tabla interna de pedidos
   $createOrdersTableQuery = "CREATE TABLE IF NOT EXISTS {$ordersTableName} (
     id INT NOT NULL AUTO_INCREMENT,
-    transportGuide varchar(100) NOT NULL,
+    transportGuide varchar(100) NULL,
     mpOrder INT NOT NULL,
     customer_id INT NOT NULL,
     sapStatus varchar(100) NULL, 
@@ -51,19 +73,33 @@ $wpdb->query($createOrdersTableQuery);
 
   $wpdb->query($createOrderProductsTableQuery);
 
+  //tabla para manejo interno de numeros de guia de los pedidos
+  $createOrderTransportGuideTableQuery = "CREATE TABLE IF NOT EXISTS {$ordersTransportGuideTableName} (
+    id INT NOT NULL AUTO_INCREMENT,
+    mpOrder INT NOT NULL,
+    transportGuide varchar(100) NULL,
+    CONSTRAINT sapwc_orders_transportguides PRIMARY KEY (id)
+  )
+  ENGINE=MyISAM
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_520_ci;
+  ";
+
+  $wpdb->query($createOrderTransportGuideTableQuery);
+
 
 }
 
 function DesactivateSAPIntegration(){
 
-  global $wpdb;
+ /*  global $wpdb;
 
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
   //BORRAMOS TABLAS PARA FINES DE DESARROLLO - PRUEBAS
 
   $wpdb->query("DROP TABLE {$ordersTableName}");
-  $wpdb->query("DROP TABLE {$orderProductsTableName}");
+  $wpdb->query("DROP TABLE {$orderProductsTableName}"); */
   
 
 }
@@ -87,17 +123,21 @@ function estructureAndInsertOrderInfo($id){
 
   global $wpdb;
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
 
   //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
   //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
   $orderHeadersAndCustomerQuery = "SELECT 
   orderS.order_id as mpOrder,
+  orderGuide.transportGuide,
   orderS.customer_id
   FROM
   {$wpdb->prefix}wc_order_stats as orderS
   INNER JOIN {$wpdb->prefix}wc_customer_lookup as customer
-  ON orderS.customer_id = customer.customer_id
+    ON orderS.customer_id = customer.customer_id
+  INNER JOIN {$ordersTransportGuideTableName} as orderGuide
+    ON orderGuide.mpOrder = orderS.order_id
   WHERE
   orderS.order_id = {$id}";
 
@@ -126,14 +166,6 @@ function estructureAndInsertOrderInfo($id){
 
   //funciones para estructurar datos a insertar en DB - TEMPORAL---------
 
-  $estructureOrder = function($order){
-    return array(
-      "customer_id" => $order["customer_id"],
-      "mpOrder" => $order["mpOrder"],
-      "transportGuide" => "1234567654"
-    );
-  };
-
   $estructureOrderProducts = function($orderProduct){
     return array(
       "product_qty" => $orderProduct["product_qty"],
@@ -157,7 +189,7 @@ function estructureAndInsertOrderInfo($id){
 
   //SOLO INSERTAMOS SI NO EXISTE REFERENCIA AL PEDIDO EN NUESTRA TABLA INTERNA
   if (sizeof($doesOrderExists) == 0 ) {
-    $wpdb->insert($ordersTableName, array_map($estructureOrder, $orderHeadersAndCustomerResults)[0]);
+    $wpdb->insert($ordersTableName, $orderHeadersAndCustomerResults[0]);
     foreach ($estructuredOrderProducts as $key) {  
       $wpdb->insert($orderProductsTableName, $key);
     }
@@ -180,7 +212,7 @@ function estructureAndInsertOrderInfo($id){
       "email" => $order_data['billing']['email'],
     ),
     "orderHeader" => array(
-      "transportGuide" => "", //falta anadirlo desde el plugin mentor shipping
+      "transportGuide" => $orderHeadersAndCustomerResults[0]["transportGuide"], //falta anadirlo desde el plugin mentor shipping
       "mpOrder" => $orderHeadersAndCustomerResults[0]["mpOrder"], 
     ),
     "orderItems" => array_map("estructureOrderItems", $orderItemsResult)
@@ -220,18 +252,23 @@ add_action( 'rest_api_init', function () {
 
     //Tabla de pedidos del woocommerce, clientes y tabla interna
     $ordersTable = "{$wpdb->prefix}wc_order_stats";
+    $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
     $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $customersTable = "{$wpdb->prefix}wc_customer_lookup";
 
     //Validamos que existan tablas
     $ordersTableInternExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
+    $ordersTransportGuideTableExists = $wpdb->query("SHOW TABLES like {$ordersTransportGuideTableName}");
     $ordersTableExists = $wpdb->query("SHOW TABLES like {$ordersTable}");
     $customersTableExists = $wpdb->query("SHOW TABLES like {$customersTable}");
 
     if (
     sizeof($ordersTableInternExists) > 0 && 
     sizeof($customersTableExists) > 0 && 
-    sizeof($ordersTableExists) > 0 ) {
+    sizeof($ordersTableExists) > 0 && 
+    sizeof($ordersTransportGuideTableExists) > 0  
+    ) {
+
 
     //buscamos pedido por id extraido de los params de la request.
     //query del pedido
@@ -252,6 +289,7 @@ add_action( 'rest_api_init', function () {
     //inicializamos variables de data y statuscode para devolverlas en la response de la peticion
     $data;
     $statusCode;
+
 
     try {
       if (sizeof($orderById) == 0) {
