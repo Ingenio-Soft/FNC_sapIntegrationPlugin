@@ -46,9 +46,12 @@ $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
     transportGuide varchar(100) NULL,
     mpOrder INT NOT NULL,
     customer_id INT NOT NULL,
+    sapOrderId varchar(100) NULL,
     sapStatus varchar(100) NULL, 
     exxeStatus varchar(100) NULL,
-    CONSTRAINT sapwc_orders_PK PRIMARY KEY (id)
+    exxeStatusUpdatedAt TIMESTAMP NULL,
+    colorNumber INT NULL,
+    CONSTRAINT sapwc_orders_PK PRIMARY KEY (id) 
   )
   ENGINE=MyISAM
   DEFAULT CHARSET=utf8mb4
@@ -97,7 +100,7 @@ function DesactivateSAPIntegration(){
   /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
   wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
 
- /*  global $wpdb;
+  /* global $wpdb;
 
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
@@ -228,11 +231,175 @@ function estructureAndInsertOrderInfo($id){
 
 }
 
-//registramos nuevo endpoint en la API REST del WP
+//FUNCION CENTRALIZADA PARA LOGICA DE MANEJO DE ESTADOS EN AMBOS ENDPOINTS
+function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
+
+  global $wpdb;
+
+  $whereOrderQuery = "";
+
+  if ($isProcessed) {
+    $whereOrderQuery = "orderW.mpOrder = {$id}";
+  }else{
+    $whereOrderQuery = "orderW.sapOrderId = {$id}";
+  }
+
+  //Tabla de pedidos del woocommerce, clientes y tabla interna
+  $ordersTable = "{$wpdb->prefix}wc_order_stats";
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+  $customersTable = "{$wpdb->prefix}wc_customer_lookup";
+
+  //Validamos que existan tablas
+  $ordersTableInternExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
+  $ordersTransportGuideTableExists = $wpdb->query("SHOW TABLES like {$ordersTransportGuideTableName}");
+  $ordersTableExists = $wpdb->query("SHOW TABLES like {$ordersTable}");
+  $customersTableExists = $wpdb->query("SHOW TABLES like {$customersTable}");
+
+  if (
+  sizeof($ordersTableInternExists) > 0 && 
+  sizeof($customersTableExists) > 0 && 
+  sizeof($ordersTableExists) > 0 && 
+  sizeof($ordersTransportGuideTableExists) > 0  
+  ) {
+
+    //DESARROLLO - PROBAR CREACION DE PEDIDO POR API
+    // estructureAndInsertOrderInfo($id);
+
+
+  //buscamos pedido por id extraido de los params de la request.
+  //query del pedido
+  $query = "SELECT 
+  orderW.mpOrder, orderW.transportGuide,
+  orderW.sapStatus as orderStatus, 
+  CONCAT_WS(' ', customer.first_name, customer.last_name) as customer_fullname,
+  customer.email, customer.city,
+  customer.state as department
+  FROM 
+  {$ordersInternTable} as orderW
+    INNER JOIN {$customersTable} as customer
+    ON orderW.customer_id = customer.customer_id
+  WHERE {$whereOrderQuery}";
+
+  //ejecutamos query del pedido
+  $orderById = $wpdb->get_results($query, ARRAY_A);
+
+  //hacemos map para retornar info sin status
+  $mapOrderFunc = function($order){
+    return array(
+      "mpOrder" => $order["mpOrder"],
+      "transportGuide" => $order["transportGuide"],
+      "customer_fullname" => $order["customer_fullname"],
+      "customer_email" => $order["email"],
+      "customer_city" => $order["city"],
+      "customer_department" => $order["department"],
+    );
+  };
+
+  $mapOrder = array_map($mapOrderFunc, $orderById);
+
+  //inicializamos variables de data y statuscode para devolverlas en la response de la peticion
+  $data;
+  $statusCode;
+
+
+  try {
+    if (sizeof($orderById) == 0) {
+      $data = array(
+        "status" => "404",
+        "message" => "No se ha encontrado pedido por el ID especificado en la petición."
+      );
+      $statusCode = 404;
+    }else{
+
+      $update;
+
+      //si se encuentra pedido por id, se valida si es por procesado o despachado, y actualizamos registro en ambos casos
+      //en caso de procesado (FASE 2)
+      if ($isProcessed) {
+        //evaluamos que no este despachado
+        if ($orderById[0]["orderStatus"] == "despachado"){
+          //estado para cuando esta despachado y no puede volver al estado anterior
+          $update = 2;
+
+        }else{
+          $newSapStatus = "procesado";      
+          $update = $wpdb->update( 
+            $ordersInternTable, 
+            array("sapStatus" => $newSapStatus, "sapOrderId" => $sapId), 
+            array("mpOrder" => $id));
+        }
+        
+
+      }
+      //en caso de despachado (FASE 3)
+      else{
+        $newSapStatus = "despachado";      
+        $update = $wpdb->update( 
+          $ordersInternTable, 
+          array("sapStatus" => $newSapStatus), 
+          array("sapOrderId" => $id));
+      }
+
+      //validamos retorno del update y devolvemos feedback en cada caso
+      //si hay error interno de db
+      if ($update === false) {
+        $data = array(
+          "status" => "500",
+          "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio"
+        );
+        $statusCode = 500;
+      }
+      //mostramos a user que pedido no puede volver a procesado si ya fue despachado
+      elseif($update === 2){
+
+        $data = array(
+          "status" => "400",
+          "message" => "El pedido ya ha sido despachado anteriormente y no puede volver al estado anterior."
+        );
+        $statusCode = 400;
+        
+      }
+      //si se ejecuta correctamente el update
+      else{
+
+        $data = array(
+          "status" => "201",
+          "pedido" => $mapOrder[0],
+          "message" => "Se actualizó correctamente el pedido."
+        );
+        $statusCode = 201;
+
+      }
+
+    }
+  } catch (\Throwable $th) {
+    $data = array(
+      "status" => "500",
+      "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio. Info del error: {$th}", 
+    );
+    $statusCode = 500;
+  }
+  //retornamos pedido o error en caso de no encontrar pedido
+  }else{
+    $data = array(
+      "status" => "500",
+      "message" => "No hay tabla de pedidos registrada en este sitio",
+    );
+    $statusCode = 500;
+  }
+
+  return array( "data" => $data, "statusCode" => $statusCode );
+
+}
+
+//registramos nuevos endpoints en la API REST del WP
+
+//ENDPOINT PARA PROCESADO (FASE 2)
 add_action( 'rest_api_init', function () {
-    register_rest_route( 'sapintegration/v1', '/orders/(?P<id>\d+)', array(
+    register_rest_route( 'sapintegration/v1', '/orders/processed/(?P<id>\d+)', array(
       'methods' => 'POST',
-      'callback' => 'changeOrderStatus',
+      'callback' => 'changeOrderStatusProcessed',
       'args' => array(
         'id' => array(
           //validacion del id
@@ -249,107 +416,77 @@ add_action( 'rest_api_init', function () {
     ) );
   } );
 
-  function changeOrderStatus($request){
+//ENDPOINT PARA DESPACHADO (FASE 3)
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/shipped/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'changeOrderStatusShipped',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      ),
+      //valida que el usuario tenga la capacidad
+      'permission_callback' => function () {
+        return current_user_can( 'sap_change_status' );
+      }
+    ) );
+  } );
 
-    global $wpdb;
+  //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+
+
+  //CALLBACK ENDPOINT PROCESADO / FASE 2
+  function changeOrderStatusProcessed($request){
 
     $id = $request["id"];
 
-    //Tabla de pedidos del woocommerce, clientes y tabla interna
-    $ordersTable = "{$wpdb->prefix}wc_order_stats";
-    $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
-    $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
-    $customersTable = "{$wpdb->prefix}wc_customer_lookup";
-
-    //Validamos que existan tablas
-    $ordersTableInternExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
-    $ordersTransportGuideTableExists = $wpdb->query("SHOW TABLES like {$ordersTransportGuideTableName}");
-    $ordersTableExists = $wpdb->query("SHOW TABLES like {$ordersTable}");
-    $customersTableExists = $wpdb->query("SHOW TABLES like {$customersTable}");
-
-    if (
-    sizeof($ordersTableInternExists) > 0 && 
-    sizeof($customersTableExists) > 0 && 
-    sizeof($ordersTableExists) > 0 && 
-    sizeof($ordersTransportGuideTableExists) > 0  
-    ) {
-
-
-    //buscamos pedido por id extraido de los params de la request.
-    //query del pedido
-    $query = "SELECT 
-    orderW.mpOrder, orderW.transportGuide, 
-    CONCAT_WS(' ', customer.first_name, customer.last_name) as customer_fullname,
-    customer.email, customer.city,
-    customer.state as department
-    FROM 
-    {$ordersInternTable} as orderW
-      INNER JOIN {$customersTable} as customer
-      ON orderW.customer_id = customer.customer_id
-    WHERE orderW.mpOrder = {$id}";
-
-    //ejecutamos query del pedido
-    $orderById = $wpdb->get_results($query, ARRAY_A);
-
-    //inicializamos variables de data y statuscode para devolverlas en la response de la peticion
+    //validamos que venga el sapOrderId por el body:
     $data;
     $statusCode;
-
-
-    try {
-      if (sizeof($orderById) == 0) {
-        $data = array(
-          "status" => "404",
-          "error" => "No se ha encontrado pedido por el ID especificado en la petición."
-        );
-        $statusCode = 404;
-      }else{
-  
-        $newState = "despachado";
-        $update = $wpdb->update( $ordersInternTable, array("sapStatus" => $newState), array("mpOrder" => $id));
-  
-        if ($update === false) {
-          $data = array(
-            "status" => "500",
-            "error" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio"
-          );
-          $statusCode = 500;
-        }/* elseif($update === 0){
-  
-          $data = array(
-            "status" => "200",
-            "error" => "El pedido ya ha sido actualizado al estado completado anteriormente.",
-          );
-          $statusCode = 200;
-          
-        } */else{
-  
-          $data = array(
-            "status" => "201",
-            "pedido" => $orderById[0],
-            "message" => "Se actualizó correctamente el pedido."
-          );
-          $statusCode = 201;
-  
-        }
-  
-      }
-    } catch (\Throwable $th) {
+    $sapOrderId = $request["sapOrderId"];
+    if ($sapOrderId == null || $sapOrderId == "" || $sapOrderId == undefined) {
       $data = array(
-        "status" => "500",
-        "error" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio. Info del error: {$th}", 
+        "status" => "404",
+        "error" => "El ID del pedido de SAP debe ser enviado obligatoriamente.",
       );
-      $statusCode = 500;
+      $statusCode = 404;
     }
-    //retornamos pedido o error en caso de no encontrar pedido
-    }else{
+    //VALIDACION EN CASO DE REQUERIRSE QUE SEA NUMERICO
+    /* elseif( !is_numeric($sapOrderId) ){
       $data = array(
-        "status" => "500",
-        "message" => "No hay tabla de pedidos registrada en este sitio",
+        "status" => "404",
+        "error" => "El ID del pedido de SAP debe ser de tipo numérico.",
       );
-      $statusCode = 500;
+      $statusCode = 404;
+    } */
+    else{
+      $dataAndStatus = handlerOrderStatusByEndpoint($id, true, $sapOrderId);
+      $data = $dataAndStatus["data"];
+      $statusCode = $dataAndStatus["statusCode"];
     }
 
+    $response = new WP_REST_Response( $data );
+    $response->set_status( $statusCode );
+
+    return $response;
+
+  }
+
+
+  //CALLBACK ENDPOINT DESPACHADO / FASE 3
+  function changeOrderStatusShipped($request){
+
+
+    $id = $request["id"];
+
+    $dataAndStatus = handlerOrderStatusByEndpoint($id, false, null);
+    $data = $dataAndStatus["data"];
+    $statusCode = $dataAndStatus["statusCode"];
     
 
     $response = new WP_REST_Response( $data );
