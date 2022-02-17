@@ -45,9 +45,18 @@ $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
     id INT NOT NULL AUTO_INCREMENT,
     transportGuide varchar(100) NULL,
     mpOrder INT NOT NULL,
-    customer_id INT NOT NULL,
+    orderAddress varchar(100) NULL,
+    city varchar(100) NULL,
+    department varchar(100) NULL,
+    docNumber varchar(100) NULL,
+    customerFullName varchar(200) NULL,
+    phoneNumber varchar(12) NULL,
+    email varchar(100) NULL,
+    totalPrice varchar(100) NULL,
+    orderDate varchar(100) NULL,
     sapOrderId varchar(100) NULL,
     sapStatus varchar(100) NULL, 
+    sapOrderDateShipped varchar(100) NULL, 
     exxeStatus varchar(100) NULL,
     exxeStatusUpdatedAt TIMESTAMP NULL,
     colorNumber INT NULL,
@@ -100,14 +109,14 @@ function DesactivateSAPIntegration(){
   /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
   wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
 
-  /* global $wpdb;
+  global $wpdb;
 
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
   //BORRAMOS TABLAS PARA FINES DE DESARROLLO - PRUEBAS
 
   $wpdb->query("DROP TABLE {$ordersTableName}");
-  $wpdb->query("DROP TABLE {$orderProductsTableName}"); */
+  $wpdb->query("DROP TABLE {$orderProductsTableName}");
   
 
 }
@@ -134,16 +143,19 @@ function estructureAndInsertOrderInfo($id){
   $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
 
+  $order = wc_get_order( $id );
+  $order_data = $order->get_data(); // The Order data
+
   //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
   //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
   $orderHeadersAndCustomerQuery = "SELECT 
   orderS.order_id as mpOrder,
+  orderS.date_created as orderDate,
+  orderS.net_total as totalPrice,
   orderGuide.transportGuide,
   orderS.customer_id
   FROM
   {$wpdb->prefix}wc_order_stats as orderS
-  INNER JOIN {$wpdb->prefix}wc_customer_lookup as customer
-    ON orderS.customer_id = customer.customer_id
   INNER JOIN {$ordersTransportGuideTableName} as orderGuide
     ON orderGuide.mpOrder = orderS.order_id
   WHERE
@@ -172,46 +184,9 @@ function estructureAndInsertOrderInfo($id){
   $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
   $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
-  //funciones para estructurar datos a insertar en DB - TEMPORAL---------
-
-  $estructureOrderProducts = function($orderProduct){
-    return array(
-      "product_qty" => $orderProduct["product_qty"],
-      "product_id" => $orderProduct["product_id"],
-      "mpOrder" => $orderProduct["mpOrder"]
-    );
-  };
-
-  $estructuredOrderProducts = array_map($estructureOrderProducts, $orderItemsResult);
-
-  //Insertamos info de pedido en tablas internas para manejo interno
-
-  $doesOrderExistsQuery = "SELECT
-  mpOrder
-  FROM
-  $ordersTableName
-  WHERE
-  mpOrder = {$id}
-  ";
-  $doesOrderExists = $wpdb->get_results($doesOrderExistsQuery, ARRAY_A);
-
-  //SOLO INSERTAMOS SI NO EXISTE REFERENCIA AL PEDIDO EN NUESTRA TABLA INTERNA
-  if (sizeof($doesOrderExists) == 0 ) {
-    $wpdb->insert($ordersTableName, $orderHeadersAndCustomerResults[0]);
-    foreach ($estructuredOrderProducts as $key) {  
-      $wpdb->insert($orderProductsTableName, $key);
-    }
-  }
-
-
-  $order = wc_get_order( $id );
-  $order_data = $order->get_data(); // The Order data
-
-  
-  
   $orderForRequestBody = array(
     "customer" => array(
-      "name" => $order_data['billing']['first_name'] . $order_data['billing']['last_name'],
+      "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => "", //falta docNumber
       "address" => $order_data['billing']['address_1'],
       "city" => $order_data['billing']['city'],
@@ -227,7 +202,60 @@ function estructureAndInsertOrderInfo($id){
 
   );
 
-  return $orderForRequestBody;
+  //funciones para estructurar datos a insertar en DB - TEMPORAL---------
+
+  $estructureOrderProducts = function($orderProduct){
+    return array(
+      "product_qty" => $orderProduct["product_qty"],
+      "product_id" => $orderProduct["product_id"],
+      "mpOrder" => $orderProduct["mpOrder"]
+    );
+  };
+
+
+
+  $estructureOrderInfo = function($order, $orderForRequestBody){
+
+    return array(
+      "transportGuide"      => $order["transportGuide"],
+      "mpOrder"             => $order["mpOrder"],
+      "orderAddress"        => $orderForRequestBody["address"],
+      "city"                => $orderForRequestBody["city"],
+      "department"          => $orderForRequestBody["department"],
+      "docNumber"           => "11404235578",  //FALTA DOCNUMBER $orderForRequestBody["docNumber"],
+      "customerFullName"    => $orderForRequestBody["name"],
+      "phoneNumber"         => $orderForRequestBody["phoneNumber"],
+      "email"               => $orderForRequestBody["email"],
+      "totalPrice"          => $order["totalPrice"],
+      "orderDate"           => $order["orderDate"],
+    );
+  };
+
+  $estructuredOrderProducts = array_map($estructureOrderProducts, $orderItemsResult);
+  $estructuredOrderInfoToDB = array_map($estructureOrderInfo, $orderHeadersAndCustomerResults, $orderForRequestBody);
+
+
+  //Insertamos info de pedido en tablas internas para manejo interno
+
+  $doesOrderExistsQuery = "SELECT
+  mpOrder
+  FROM
+  $ordersTableName
+  WHERE
+  mpOrder = {$id}
+  ";
+  $doesOrderExists = $wpdb->get_results($doesOrderExistsQuery, ARRAY_A);
+
+  //SOLO INSERTAMOS SI NO EXISTE REFERENCIA AL PEDIDO EN NUESTRA TABLA INTERNA
+  if (sizeof($doesOrderExists) == 0 ) {
+    $wpdb->insert($ordersTableName, $estructuredOrderInfoToDB[0]);
+    foreach ($estructuredOrderProducts as $key) {  
+      $wpdb->insert($orderProductsTableName, $key);
+    }
+  }
+
+
+  return  $orderForRequestBody;
 
 }
 
@@ -263,23 +291,20 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
   sizeof($ordersTransportGuideTableExists) > 0  
   ) {
 
-    //DESARROLLO - PROBAR CREACION DE PEDIDO POR API
-    // estructureAndInsertOrderInfo($id);
-
 
   //buscamos pedido por id extraido de los params de la request.
   //query del pedido
   $query = "SELECT 
   orderW.mpOrder, orderW.transportGuide,
   orderW.sapStatus as orderStatus, 
-  CONCAT_WS(' ', customer.first_name, customer.last_name) as customer_fullname,
-  customer.email, customer.city,
-  customer.state as department
+  orderW.customerFullName,
+  orderW.email, orderW.city,
+  orderW.department
   FROM 
   {$ordersInternTable} as orderW
-    INNER JOIN {$customersTable} as customer
-    ON orderW.customer_id = customer.customer_id
   WHERE {$whereOrderQuery}";
+
+
 
   //ejecutamos query del pedido
   $orderById = $wpdb->get_results($query, ARRAY_A);
@@ -437,8 +462,107 @@ add_action( 'rest_api_init', function () {
     ) );
   } );
 
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/test/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'changeOrderStatusTest',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      ),
+      //valida que el usuario tenga la capacidad
+      'permission_callback' => function () {
+        return current_user_can( 'sap_change_status' );
+      }
+    ) );
+  } );
+
   //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
 
+    function changeOrderStatusTest($request){
+
+      $id = $request["id"];
+      
+      //DESARROLLO - PROBAR CREACION DE PEDIDO POR API
+      $estructuredData = estructureAndInsertOrderInfo($id);
+
+      global $wpdb;
+      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      //queries:
+
+      //QUERY PARA LA TABLA DEL DASHBOARD
+      $mainQuery = "SELECT 
+      CONCAT('#', orderW.mpOrder, ' ', orderW.customerFullName) as orderNumberName,
+      orderW.phoneNumber,
+      orderW.orderDate,
+      orderW.sapOrderDateShipped,
+      orderW.totalPrice,
+      orderW.colorNumber
+      FROM 
+      {$ordersInternTable} as orderW
+      ORDER BY 
+          orderW.colorNumber ASC,
+          orderW.exxeStatusUpdatedAt DESC  
+      ";
+      //array para el foreach
+      $mainResults = $wpdb->get_results($mainQuery, ARRAY_A);
+
+
+      //QUERY PARA CARD DASHBOARD - FUNCION
+      function getCardNumber($status){
+        global $wpdb;
+        $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+        $mainQuery = "SELECT 
+        CONCAT_WS(' ', orderW.mpOrder, orderW.customerFullName) as orderNumberName,
+        orderW.phoneNumber,
+        orderW.orderDate,
+        orderW.sapOrderDateShipped,
+        orderW.totalPrice,
+        orderW.colorNumber
+        FROM 
+        {$ordersInternTable} as orderW
+        WHERE
+        orderW.colorNumber = {$status}
+        ORDER BY
+        orderW.exxeStatusUpdatedAt DESC    
+        ";
+        $results = $wpdb->get_results($mainQuery, ARRAY_A);
+        return $results;
+      }
+
+      //EN PROCESO:
+      $inProcessOrders = sizeof(getCardNumber(4));
+      //EN RETRASO  :
+      $delayedOrders = sizeof(getCardNumber(3));
+      //Con novedades  :
+      $novedadOrders = sizeof(getCardNumber(1));
+      //Mas de 15 dias con novedad  :
+      $novedadDelayedOrders = sizeof(getCardNumber(2));
+      //Entregados  :
+      $deliveredOrders = sizeof(getCardNumber(5));
+
+      $data = array(
+        "dataToJson" => $estructuredData,
+        "mainQuery" => $mainResults,
+        "inProcess" => $inProcessOrders,
+        "delayed" => $delayedOrders,
+        "novedad" => $novedadOrders,
+        "novedadDelayed" => $novedadDelayedOrders,
+        "delivered" => $deliveredOrders,
+      );
+
+      $response = new WP_REST_Response( $data );
+
+      return $response;
+
+    }
 
   //CALLBACK ENDPOINT PROCESADO / FASE 2
   function changeOrderStatusProcessed($request){
