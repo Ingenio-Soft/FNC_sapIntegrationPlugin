@@ -385,6 +385,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
       //en caso de despachado (FASE 3)
       else{
         $newSapStatus = "despachado";
+        date_default_timezone_set("America/Bogota");
         $currentDate = date('m-d-Y h:i:s');       
         $update = $wpdb->update( 
           $ordersInternTable, 
