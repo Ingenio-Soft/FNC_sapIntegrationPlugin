@@ -8,27 +8,6 @@
  */
 
 
-//CODIGO A COLOCAR EN PLUGIN EPAYCO WOOCOMMERCE, PARA INSERTAR EN NUESTRA TABLA EL TRANSPORTGUIDE
-function insertTransportGuideInInternTable($order_id, $transport_guide){
-
-  global $wpdb;
-  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
-
-  try {
-
-    $wpdb->insert(
-      $ordersTransportGuideTableName, 
-      array(
-        "mpOrder" => $order_id,
-        "transportGuide" => $transport_guide,
-      ));
-
-  } catch (\Throwable $th) {
-    $error = "Hubo un error al intentar insertar el numero de guia. {$th}";
-  }
-
-}
-
 
 function ActivateSAPIntegration(){
 
@@ -89,7 +68,9 @@ $wpdb->query($createOrdersTableQuery);
   $createOrderTransportGuideTableQuery = "CREATE TABLE IF NOT EXISTS {$ordersTransportGuideTableName} (
     id INT NOT NULL AUTO_INCREMENT,
     mpOrder INT NOT NULL,
-    transportGuide varchar(100) NULL,
+    transportGuide varchar(100) NOT NULL,
+    docNumber varchar(20) NOT NULL,
+	createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, 
     CONSTRAINT sapwc_orders_transportguides PRIMARY KEY (id)
   )
   ENGINE=MyISAM
@@ -109,14 +90,16 @@ function DesactivateSAPIntegration(){
   /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
   wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
 
-  global $wpdb;
+/*   global $wpdb;
 
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   //BORRAMOS TABLAS PARA FINES DE DESARROLLO - PRUEBAS
 
   $wpdb->query("DROP TABLE {$ordersTableName}");
   $wpdb->query("DROP TABLE {$orderProductsTableName}");
+  $wpdb->query("DROP TABLE {$ordersTransportGuideTableName}"); */
   
 
 }
@@ -130,7 +113,7 @@ function estructureOrderItems($orderItem){
     "mpSKU" => $orderItem["mpSKU"],
     "description" => $orderItem["description"],
     "quantity" => $orderItem["product_qty"],
-    "brand" => "" //falta extraer marca de producto,
+    "brand" => $orderItem["brand"]
   );
 
 };
@@ -142,6 +125,7 @@ function estructureAndInsertOrderInfo($id){
   $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
+  $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
 
   $order = wc_get_order( $id );
   $order_data = $order->get_data(); // The Order data
@@ -153,11 +137,13 @@ function estructureAndInsertOrderInfo($id){
   orderS.date_created as orderDate,
   orderS.net_total as totalPrice,
   orderGuide.transportGuide,
+  orderGuide.docNumber,
   orderS.customer_id
   FROM
   {$wpdb->prefix}wc_order_stats as orderS
   INNER JOIN {$ordersTransportGuideTableName} as orderGuide
     ON orderGuide.mpOrder = orderS.order_id
+  
   WHERE
   orderS.order_id = {$id}";
 
@@ -168,13 +154,17 @@ function estructureAndInsertOrderInfo($id){
   or_prod.product_id, 
   or_prod.order_id as mpOrder, 
   prod_info.sku as mpSKU,
-  prod_extra_info.order_item_name as description
+  prod_extra_info.order_item_name as description,
+  orderPL.meta_value as brand
   FROM
   {$wpdb->prefix}wc_order_product_lookup as or_prod
   INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
   ON or_prod.product_id = prod_info.product_id
   INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
   ON or_prod.order_item_id = prod_extra_info.order_item_id
+  INNER JOIN {$orderProductsMetaTableName} as orderPL
+  ON or_prod.order_item_id = orderPL.order_item_id
+  AND orderPL.meta_key = 'Vendido por'
   WHERE 
   or_prod.order_id = {$id} AND
   prod_extra_info.order_id = {$id}
@@ -187,7 +177,7 @@ function estructureAndInsertOrderInfo($id){
   $orderForRequestBody = array(
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
-      "docNumber" => "", //falta docNumber
+      "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['billing']['address_1'],
       "city" => $order_data['billing']['city'],
       "department" => $order_data['billing']['state'],
@@ -222,7 +212,7 @@ function estructureAndInsertOrderInfo($id){
       "orderAddress"        => $orderForRequestBody["address"],
       "city"                => $orderForRequestBody["city"],
       "department"          => $orderForRequestBody["department"],
-      "docNumber"           => "11404235578",  //FALTA DOCNUMBER $orderForRequestBody["docNumber"],
+      "docNumber"           => $orderForRequestBody["docNumber"],  //FALTA DOCNUMBER $orderForRequestBody["docNumber"],
       "customerFullName"    => $orderForRequestBody["name"],
       "phoneNumber"         => $orderForRequestBody["phoneNumber"],
       "email"               => $orderForRequestBody["email"],
@@ -256,6 +246,41 @@ function estructureAndInsertOrderInfo($id){
 
 
   return  $orderForRequestBody;
+
+}
+
+//CODIGO A COLOCAR EN PLUGIN EPAYCO WOOCOMMERCE, PARA INSERTAR EN NUESTRA TABLA EL TRANSPORTGUIDE
+function insertTransportGuideInInternTable($order_id, $transport_guide, $order, $docNumber){
+
+  global $wpdb;
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
+
+  try {
+	  //se busca si existe
+	  $results = $wpdb->get_row("SELECT COUNT(1) as count FROM {$ordersTransportGuideTableName} WHERE mpOrder = {$order_id};" , OBJECT );
+
+	  if($results->count > 0){
+		  $wpdb->update(
+			  $ordersTransportGuideTableName, 
+			  array('transportGuide'=>$transport_guide),
+			  array('mpOrder'=>$order_id)
+		  );
+	  }
+	  else{
+		  $wpdb->insert(
+			  $ordersTransportGuideTableName, 
+			  array(
+				  "mpOrder" => $order_id,
+				  "transportGuide" => $transport_guide,
+				  "docNumber" => $docNumber,
+          )
+		  );
+	  }
+
+  } catch (\Throwable $th) {
+    $error = "Hubo un error al intentar insertar en la tabla de la orden. {$th}";
+	$order->add_order_note('Ocurrio un Error insertando en la tabla de la orden');
+  }
 
 }
 
@@ -314,7 +339,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
     return array(
       "mpOrder" => $order["mpOrder"],
       "transportGuide" => $order["transportGuide"],
-      "customer_fullname" => $order["customer_fullname"],
+      "customer_fullname" => $order["customerFullName"],
       "customer_email" => $order["email"],
       "customer_city" => $order["city"],
       "customer_department" => $order["department"],
@@ -359,10 +384,14 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
       }
       //en caso de despachado (FASE 3)
       else{
-        $newSapStatus = "despachado";      
+        $newSapStatus = "despachado";
+        $currentDate = date('m-d-Y h:i:s');       
         $update = $wpdb->update( 
           $ordersInternTable, 
-          array("sapStatus" => $newSapStatus), 
+          array(
+            "sapStatus" => $newSapStatus, 
+            "sapOrderDateShipped" => $currentDate, 
+          ), 
           array("sapOrderId" => $id));
       }
 
@@ -497,6 +526,7 @@ add_action( 'rest_api_init', function () {
       //queries:
 
       //QUERY PARA LA TABLA DEL DASHBOARD
+
       $mainQuery = "SELECT 
       CONCAT('#', orderW.mpOrder, ' ', orderW.customerFullName) as orderNumberName,
       orderW.phoneNumber,
@@ -547,6 +577,9 @@ add_action( 'rest_api_init', function () {
       $novedadDelayedOrders = sizeof(getCardNumber(2));
       //Entregados  :
       $deliveredOrders = sizeof(getCardNumber(5));
+
+      $novedadOrdersTable = getCardNumber(1);
+      $deliveredOrdersTable = getCardNumber(5);
 
       $data = array(
         "dataToJson" => $estructuredData,
