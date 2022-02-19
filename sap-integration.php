@@ -679,14 +679,24 @@ add_action( 'rest_api_init', function () {
         "delivered" => $deliveredOrders,
       ); */
 
-      /* $estructuredData = estructureAndInsertOrderInfo($id);
+      // $estructuredData = estructureAndInsertOrderInfo($id);
 
-      global $wpdb;
-      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+      // global $wpdb;
+      // $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
+
+      $colorNumber = getColorNumberFromExxeStatus($statusExxe);
+      
+      $data = array(
+        "status" => $statusExxe, 
+        "date" => $statusExxeDate, 
+        "color" => $colorNumber, 
+      );
 
       $responseAPI = new WP_REST_Response( $data );
 
-      return $responseAPI; */
+      return $responseAPI;
 
     }
 
@@ -790,7 +800,7 @@ function exxeCron(){
 
   //hacemos query de todos los pedidos que ya hayan sido despachados por SAP:
   $ordersSent = "SELECT
-  orderS.id, orderS.mpOrder, orderS.transportGuide
+  orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus 
   FROM
   {$ordersInternTable} as orderS
   WHERE
@@ -803,17 +813,215 @@ function exxeCron(){
   if (sizeof($ordersSentResults) > 0) {
     foreach ($ordersSentResults as $key) {
       
-      //En teoria aqui iria el codigo para extraer estado de guia de EXXE
-      $exxeStatus = "statusExxe1";
+      //PETICION A API SOAP DE EXXE PARA EXTRAER ULTIMO ESTADO Y FECHA DE ACTUALIZACION
+      [$exxeStatus, $statusExxeDate] =  getExxeStatusByTransportGuide($key["transportGuide"]);
+      //extraemos id de pedido y status exxe anterior
       $order_id = $key["id"];
+      $currentExxeStatus = $key["exxeStatus"];
+      //ejecutamos actualizacion si el status exxe es diferente al anterior
+      if ($currentExxeStatus != $exxeStatus) {
+        //AQUI OBTENEMOS EL COLOR SEGUN EL ESTADO PARA ACTUALIZARLO
+        $colorNumber = getColorNumberFromExxeStatus($exxeStatus);
+        $wpdb->update(
+          $ordersInternTable, 
+          array(
+            "exxeStatus" => $exxeStatus,
+          ), 
+          array("id" => $order_id));
+          
+        $updateColor = $wpdb->update(
+          $ordersInternTable, 
+          array(
+            "colorNumber" => $colorNumber,
+          ), 
+          array("id" => $order_id));
 
-      //ejecutamos actualizacion
-      $wpdb->update($ordersInternTable, array("exxeStatus" => $exxeStatus), array("id" => $order_id));
-  
-  
+        if ($updateColor == 1) {
+          $wpdb->update(
+            $ordersInternTable, 
+            array(
+              "exxeStatusUpdatedAt" => $statusExxeDate,
+            ), 
+            array("id" => $order_id));
+        }
+
+      }
     }
+
+    //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
+
+    $updateOrders = "UPDATE
+    {$ordersInternTable} 
+    SET
+
+    ";
+    
+
+    //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
+
   }
 };
+
+function getColorNumberFromExxeStatus($exxeStatus){
+
+  //SWITCH CASE POR CADA ESTADO Y RETORNAR UN NUMERO DE COLOR
+  $colorNumber = 0;
+  switch ($exxeStatus) {
+
+    //ESTADOS DE PROCESANDO / EN ENTREGA
+
+    case 'EN PREDESPACHO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA CREADA':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA ORIGEN':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA ASIGNADA A PLANILLA NACIONAL':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VEHICULO NACIONAL':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VIAJE TRONCAL':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA ENLACE':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA DESTINO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA ASIGNADA A PLANILLA URBANA':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA DESASIGNADA DE LA PLANILLA':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VEHICULO URBANO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN REPARTO':
+      $colorNumber = 4;
+      break;
+
+    //ESTADOS DE ENTREGADO
+
+    case 'LLEGO AL PUNTO DE ENTREGA':
+      $colorNumber = 5;
+      break;
+
+    case 'ENTREGA A REMITENTE':
+      $colorNumber = 5;
+      break;
+
+    case 'ENTREGA EXXE':
+      $colorNumber = 5;
+      break;
+
+    //ESTADOS DE NOVEDAD
+    case 'ENTREGA PARCIAL':
+      $colorNumber = 1;
+      break;
+
+    case 'NO ENTREGADO':
+      $colorNumber = 1;
+      break;
+
+    case 'GUIA DEVUELTA A BODEGA':
+      $colorNumber = 1;
+      break;
+      
+    case 'REDIRECCION':
+      $colorNumber = 1;
+      break;
+
+    case 'REDIRECCIONADA':
+      $colorNumber = 1;
+      break;
+
+    case 'CERRAR GUIA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULACION AUTOMATICA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULACION DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULADA':
+      $colorNumber = 1;
+      break;
+
+    case 'INGRESO DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'MODIFICACION DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'GUIA CON CITA REPROGRAMADA':
+      $colorNumber = 1;
+      break;
+    
+    default:
+    $colorNumber = 0;
+      break;
+  }
+
+  return $colorNumber;
+}
+
+function getExxeStatusByTransportGuide($transportGuide){
+
+  //inicializamos soap client
+  $client = new SoapClient('http://solex.blulogistics.net/solexrc/services/webservicesolex.asmx?wsdl');
+  //creamos params para el body de la peticion
+  $params->user = "wsfedbog";
+  $params->password = "wsfedbog";
+  $params->numero = $transportGuide;
+
+  //ejecutamos metodo de exxe para obtener estado de guia dentro de un trycatch
+  try {
+    //echo 'fv' . print_r($params);
+    $result = $client->ConsultaGuia($params);
+    //var_dump($result);
+  } 
+  catch (SOAPFault $f) {
+    echo $f->getMessage();
+  }
+
+  //Extraemos ultimo estado del array o objeto estados, incluyendo su fecha:
+  if(is_array( $result->ConsultaGuiaResult->Estados->EEstadoGuia)){
+    $statusArray = $result->ConsultaGuiaResult->Estados->EEstadoGuia;
+    $lastStatusInfo = $statusArray[sizeof($statusArray) - 1]; 
+  }
+	else
+  $lastStatusInfo = $result->ConsultaGuiaResult->Estados->EEstadoGuia;
+  
+  $guideStatus = $lastStatusInfo->Estado;
+  $guideStatusDate = $lastStatusInfo->FechaEstado;
+
+  return [$guideStatus, $guideStatusDate];
+
+}
 
 //anadimos custom hook con funcion de cron y lo programamos
 
