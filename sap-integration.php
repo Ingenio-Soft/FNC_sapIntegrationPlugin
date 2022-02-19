@@ -244,6 +244,90 @@ function estructureAndInsertOrderInfo($id){
     }
   }
 
+  //CREDENCIALES PARA LOGIN SAP:
+  $sapCredentialsLogin = array(
+    "user" => "mkpfncuat",
+    "password" => "3TuC3Lh7FT9vtuD5",
+  );
+
+  $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
+
+
+  //HACEMOS PETICION AL LOGIN
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
+    CURLOPT_HTTPHEADER => array(
+      'Content-Type: application/json'
+    ),
+  ));
+  $response = curl_exec($curl);
+  curl_close($curl);
+  $responseJSON = json_decode($response, true);
+
+
+  $tokenJSON = 'token: ' . $responseJSON["token"];
+
+  //HACEMOS PETICION PARA ENVIAR PEDIDO
+
+  date_default_timezone_set("America/Bogota");
+  $currentDate = date('YmdHis');
+
+  $requestHeaderInfo = array(
+      "client" => "marketplace",
+      "ipAdress" => $_SERVER["REMOTE_ADDR"],
+      "userName" => "mpfncuat",
+      "sessionID" => $currentDate,
+      "requestID" => $currentDate,
+      "activeRecord" => 1,
+    );
+
+  $requestHeaderAndBodyData = array(
+    "requestHeader" => $requestHeaderInfo,
+    "requestBody" => $orderForRequestBody
+  );
+
+  $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
+
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
+    CURLOPT_HTTPHEADER => array(
+      $tokenJSON,
+      'Content-Type: application/json'
+    ),
+  ));
+
+  $response2 = curl_exec($curl);
+
+  curl_close($curl);
+  
+  $response2JSON = json_decode($response2, true);
+
+  if ($response2JSON["responseBody"]["code"] == 1) {
+    $wpdb->update(
+      $ordersTableName, 
+      array('sapStatus'=> "enviado"),
+      array('mpOrder'=>$id)
+    );
+  } 
+
 
   return  $orderForRequestBody;
 
@@ -394,6 +478,13 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
             "sapOrderDateShipped" => $currentDate, 
           ), 
           array("sapOrderId" => $id));
+        	
+        //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $subject = "Prueba de Correo";
+        $message = "Pedido con id {$id} despachado";
+
+        wp_mail( $to, $subject, $message);
       }
 
       //validamos retorno del update y devolvemos feedback en cada caso
@@ -519,16 +610,12 @@ add_action( 'rest_api_init', function () {
       $id = $request["id"];
       
       //DESARROLLO - PROBAR CREACION DE PEDIDO POR API
-      $estructuredData = estructureAndInsertOrderInfo($id);
-
-      global $wpdb;
-      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
       //queries:
 
       //QUERY PARA LA TABLA DEL DASHBOARD
 
-      $mainQuery = "SELECT 
+      /* $mainQuery = "SELECT 
       CONCAT('#', orderW.mpOrder, ' ', orderW.customerFullName) as orderNumberName,
       orderW.phoneNumber,
       orderW.orderDate,
@@ -590,11 +677,16 @@ add_action( 'rest_api_init', function () {
         "novedad" => $novedadOrders,
         "novedadDelayed" => $novedadDelayedOrders,
         "delivered" => $deliveredOrders,
-      );
+      ); */
 
-      $response = new WP_REST_Response( $data );
+      /* $estructuredData = estructureAndInsertOrderInfo($id);
 
-      return $response;
+      global $wpdb;
+      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      $responseAPI = new WP_REST_Response( $data );
+
+      return $responseAPI; */
 
     }
 
