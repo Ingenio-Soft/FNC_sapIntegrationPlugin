@@ -87,19 +87,8 @@ function DesactivateSAPIntegration(){
 
   //DESACTIVAMOS CRON DE EXXE
 
-  /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
-  wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
-
-/*   global $wpdb;
-
-  $ordersTableName = "{$wpdb->prefix}sapwc_orders";
-  $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
-  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
-  //BORRAMOS TABLAS PARA FINES DE DESARROLLO - PRUEBAS
-
-  $wpdb->query("DROP TABLE {$ordersTableName}");
-  $wpdb->query("DROP TABLE {$orderProductsTableName}");
-  $wpdb->query("DROP TABLE {$ordersTransportGuideTableName}"); */
+  $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
+  wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' );
   
 
 }
@@ -480,8 +469,10 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
           array("sapOrderId" => $id));
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
+        
+        // $to = "comprocafedecolombia@cafedecolombia.com";
         $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-        $subject = "Prueba de Correo";
+        $subject = "Notificación de pedido despachado";
         $message = "Pedido con id {$id} despachado";
 
         wp_mail( $to, $subject, $message);
@@ -694,6 +685,25 @@ add_action( 'rest_api_init', function () {
         "color" => $colorNumber, 
       );
 
+      /* global $wpdb;
+
+      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      $ordersSent = "SELECT
+      orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus, orderS.colorNumber 
+      FROM
+      {$ordersInternTable} as orderS
+      WHERE
+      orderS.sapStatus = 'despachado' AND
+      (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
+      ";
+
+      $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
+
+      $data = array(
+        "results" => $ordersSentResults
+      ); */
+
       $responseAPI = new WP_REST_Response( $data );
 
       return $responseAPI;
@@ -758,25 +768,16 @@ add_action( 'rest_api_init', function () {
 
 
 
-//codigo a ejecutar al momento de ejecutarse correctamente el pago de un pedido
+/* //codigo a ejecutar al momento de ejecutarse correctamente el pago de un pedido
 function getOrderInfoAfterCheckoutProcessed($order_id) {
 
   global $wpdb;
 
-  $order = wc_get_order( $order_id );
-
   //OBTENEMOS PEDIDO, GUARDAMOS INTERNAMENTE Y RETORNAMOS DATA LISTA PARA ENVIARSE A API
   $dataToJson = estructureAndInsertOrderInfo( $order_id );
 
-  echo "Info de orden:" . $dataToJson;
-
-
-
-  echo "This is some custom text added by a function hooked to the 'woocommerce_thankyou' action.<br>";
-  echo "The billing address postcode for the order is  " . $order-> get_billing_postcode() . ".";
 }
-
-add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' );
+add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' ); */
 
 
 //CODIGO PARA ACTIVAR CRON
@@ -800,11 +801,12 @@ function exxeCron(){
 
   //hacemos query de todos los pedidos que ya hayan sido despachados por SAP:
   $ordersSent = "SELECT
-  orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus 
+  orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus, orderS.colorNumber 
   FROM
   {$ordersInternTable} as orderS
   WHERE
-  orderS.sapStatus = 'despachado'
+  orderS.sapStatus = 'despachado' AND
+  (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
   ";
 
   $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
@@ -818,6 +820,7 @@ function exxeCron(){
       //extraemos id de pedido y status exxe anterior
       $order_id = $key["id"];
       $currentExxeStatus = $key["exxeStatus"];
+      $currentColor = $key["colorNumber"];
       //ejecutamos actualizacion si el status exxe es diferente al anterior
       if ($currentExxeStatus != $exxeStatus) {
         //AQUI OBTENEMOS EL COLOR SEGUN EL ESTADO PARA ACTUALIZARLO
@@ -828,39 +831,108 @@ function exxeCron(){
             "exxeStatus" => $exxeStatus,
           ), 
           array("id" => $order_id));
-          
-        $updateColor = $wpdb->update(
-          $ordersInternTable, 
-          array(
-            "colorNumber" => $colorNumber,
-          ), 
-          array("id" => $order_id));
-
-        if ($updateColor == 1) {
-          $wpdb->update(
-            $ordersInternTable, 
-            array(
-              "exxeStatusUpdatedAt" => $statusExxeDate,
-            ), 
-            array("id" => $order_id));
-        }
+          if ($currentColor != $colorNumber) {
+            $wpdb->update(
+              $ordersInternTable, 
+              array(
+                "colorNumber" => $colorNumber,
+                "exxeStatusUpdatedAt" => $statusExxeDate,
+              ), 
+              array("id" => $order_id));
+          }
 
       }
     }
-
-    //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-
-    $updateOrders = "UPDATE
-    {$ordersInternTable} 
-    SET
-
-    ";
-    
-
-    //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-
   }
+
+  //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
+  sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
+
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
+  updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
+  // updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
+  updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
+  // updateColorNumberIfTimePassed(1, 2, 15, "DAY");
 };
+
+function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
+  global $wpdb;
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+  //extraemos fecha actual para hacer comparacion
+  date_default_timezone_set("America/Bogota");
+  $currentDate = date('YmdHis');
+
+  //actualizamos cada pedido del color especificado, que haya pasado mas del tiempo especificado en ese estado, a su respectivo estado de retraso
+  $updateOrders = "UPDATE
+    {$ordersInternTable}
+    SET
+    colorNumber = {$newColor}
+    WHERE
+    colorNumber = {$currentColor} AND 
+    TIMESTAMPDIFF({$timeParamDiff}, exxeStatusUpdatedAt, {$currentDate}) > {$timeValue} 
+    ";
+
+    $wpdb->query($updateOrders);
+
+    //ESTABLECEMOS MENSAJES DE CORREO CUANDO CAMBIA A ESTADO NARANJA, MOSTRANDO INFO BASICA DE CADA PEDIDO ACTUALIZADO
+    if ($newColor == 2) {
+      sendEmailByOrderStatus($newColor, "NOTIFICADO"); 
+    }
+}
+
+function sendEmailByOrderStatus($colorNumber, $newStatus){
+  global $wpdb;
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+  //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
+  $ordersDelayed = "SELECT
+      CONCAT('Pedido #', mpOrder, ' - ', customerFullName) as orderInfo
+      FROM {$ordersInternTable}
+      WHERE
+      colorNumber = {$colorNumber} AND 
+      exxeStatus != '{$newStatus}'
+      ";
+      $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
+
+      //HACEMOS FOR EACH Y AGREGAMOS A ARRAY LA INFO DE CADA PEDIDO
+      if (sizeof($resultsOrders)) {
+        $ordersDelayedArrayInfo = [];
+        foreach ($resultsOrders as $key => $value) {
+          array_push($ordersDelayedArrayInfo, $value["orderInfo"]);
+        }
+        //HACEMOS JOIN AL ARREGLO:
+        $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
+        //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
+
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        if ($colorNumber == 1) {
+          $subject = "Notificación de Pedidos con novedad";
+          $messageInfo = "";
+        }else{
+          $subject = "Notificación de Pedidos con novedad que llevan más de 15 días";
+          $messageInfo = " y llevan más de 15 días en ese estado";
+        }
+        $message = "Estos son los pedidos que tuvieron alguna novedad por parte de exxe{$messageInfo}. Por favor, notificar el procedimiento a realizar con estos pedidos: \n {$ordersImploded} \n";
+  
+        $wasEmailSent = wp_mail( $to, $subject, $message);
+  
+        if ($wasEmailSent) {
+          //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+          $ordersDelayedNotified = "UPDATE
+          {$ordersInternTable}
+          SET 
+          exxeStatus = '{$newStatus}'
+          WHERE
+          colorNumber = {$colorNumber}
+          ";
+          $wpdb->query($ordersDelayedNotified);
+        }
+      }
+}
 
 function getColorNumberFromExxeStatus($exxeStatus){
 
@@ -1025,13 +1097,13 @@ function getExxeStatusByTransportGuide($transportGuide){
 
 //anadimos custom hook con funcion de cron y lo programamos
 
-/* add_action( 'sap_exxe_integration_cron', 'exxeCron');
+add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
   wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
-} */
+  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+}
 
 
 
