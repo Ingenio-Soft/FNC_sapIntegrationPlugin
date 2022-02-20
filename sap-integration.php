@@ -470,8 +470,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
-        // $to = "comprocafedecolombia@cafedecolombia.com";
-        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $to = "comprocafedecolombia@cafedecolombia.com";
+        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Notificación de pedido despachado";
         $message = "Pedido con id {$id} despachado";
 
@@ -849,12 +849,12 @@ function exxeCron(){
   sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-  updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
-  // updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+  // updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
+  updateColorNumberIfTimePassed(4, 3, 7, "DAY");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-  updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
-  // updateColorNumberIfTimePassed(1, 2, 15, "DAY");
+  // updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
+  updateColorNumberIfTimePassed(1, 2, 15, "DAY");
 };
 
 function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
@@ -907,8 +907,8 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
         $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
         //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
 
-        // $to = "comprocafedecolombia@cafedecolombia.com";
-        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $to = "comprocafedecolombia@cafedecolombia.com";
+        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         if ($colorNumber == 1) {
           $subject = "Notificación de Pedidos con novedad";
           $messageInfo = "";
