@@ -21,7 +21,6 @@ if (isset($_POST['busquedad'])){
             totalPrice LIKE '%{$busqueda}%' OR 
             colorNumber LIKE '%{$busqueda}%')";
     }
-
 }
 if(isset($_POST["valuefilters"])){
 	$value = $_POST["valuefilters"];
@@ -324,7 +323,7 @@ font-weight: bolder;
  
 <div class="container-fluid">
 <form id="filterOrders" method="POST">
-<input type="hidden" name="valuefilters" >
+<input type="hidden"  name="valuefilters" >
 </form>
 
     <div class="row">
@@ -605,6 +604,9 @@ const formPagination = document.querySelector("#formPagination ");
 const btnsPagination = document.querySelectorAll(".buttonPagination");
 btnsPagination.forEach(btn => {
 	btn.addEventListener("click", () => {
+        if (btn.classList.contains("disabled")) {
+            return;
+        }
 		let btnPage = btn.getAttribute("data-pageNumber");
 		formPagination.children[0].value = btnPage;
 		formPagination.submit();
@@ -646,6 +648,8 @@ window.addEventListener("DOMContentLoaded", () => {
             let semaforoNumber = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("data-colorValue");
             if (semaforoNumber == "2") {
                 modalFooter.setAttribute("style", "display: block;");
+            }else{
+                modalFooter.setAttribute("style", "display: none;");
             }
             //recorremos celdas y colocamos su textcontent en el elemento correspondiente, el cual hace match con su atributo data-campo
             orderContentElements.forEach(td => {
