@@ -470,8 +470,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
-        $to = "comprocafedecolombia@cafedecolombia.com";
-        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Notificación de pedido despachado";
         $message = "Pedido con id {$id} despachado";
 
@@ -593,8 +593,106 @@ add_action( 'rest_api_init', function () {
       }
     ) );
   } );
+ 
+//ENDPOINT PARA CONSULTAR PRODUCTOS DE UN PEDIDO  
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/products/(?P<id>\d+)', array(
+      'methods' => 'GET',
+      'callback' => 'getOrderProducts',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
+
+//ENDPOINT PARA ELIMINAR PEDIDOS EN ESTADO 2  
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/delete/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'deleteOrder',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
 
   //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+
+  function deleteOrder($request){
+
+    global $wpdb;
+    $id = $request["id"];
+    $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+    $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
+
+    $deleteOrderProducts = "DELETE
+    FROM {$ordersProductsTable}
+    WHERE
+    mpOrder = {$id}
+    ";
+
+    $deleteOrder = "DELETE
+    FROM {$ordersInternTable}
+    WHERE
+    mpOrder = {$id} AND
+    colorNumber = 2
+    ";
+
+    $deleteResults = $wpdb->query($deleteOrder);
+    $wpdb->query($deleteOrderProducts);
+
+    if ($deleteResults > 0) {
+      $responseAPI = new WP_REST_Response( array("result" => true) );
+      return $responseAPI;
+    }
+  }
+
+  function getOrderProducts($request){
+
+    global $wpdb;
+    $id = $request["id"];
+  $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
+
+    $orderItemsQuery = "SELECT 
+    or_prod.product_net_revenue as price, 
+    or_prod.product_qty as quantity,
+    prod_extra_info.order_item_name as productName
+    FROM
+    {$wpdb->prefix}wc_order_product_lookup as or_prod
+    INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+    ON or_prod.product_id = prod_info.product_id
+    INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+    ON or_prod.order_item_id = prod_extra_info.order_item_id
+    INNER JOIN {$orderProductsMetaTableName} as orderPL
+    ON or_prod.order_item_id = orderPL.order_item_id
+    AND orderPL.meta_key = 'Vendido por'
+    WHERE 
+    or_prod.order_id = {$id} AND
+    prod_extra_info.order_id = {$id}
+    ";
+
+    $results = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+
+    $data = array(
+      "products" => $results,
+    );
+
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
+
+  }
 
     function changeOrderStatusTest($request){
 
@@ -893,7 +991,7 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
       FROM {$ordersInternTable}
       WHERE
       colorNumber = {$colorNumber} AND 
-      exxeStatus != '{$newStatus}'
+      sapStatus != '{$newStatus}'
       ";
       $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
 
@@ -907,8 +1005,8 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
         $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
         //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
 
-        $to = "comprocafedecolombia@cafedecolombia.com";
-        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         if ($colorNumber == 1) {
           $subject = "Notificación de Pedidos con novedad";
           $messageInfo = "";
@@ -925,7 +1023,7 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
           $ordersDelayedNotified = "UPDATE
           {$ordersInternTable}
           SET 
-          exxeStatus = '{$newStatus}'
+          sapStatus = '{$newStatus}'
           WHERE
           colorNumber = {$colorNumber}
           ";
@@ -1100,15 +1198,82 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+}
+
+/*----------------------------------------------------------------------*/
+
+//CONFIGURACION PARTE VISUAL
+
+/*AGREGAR PLUGIN A BARRA LATERAL*/
+
+add_action('admin_menu', 'CrearMenu');
+
+function CrearMenu()
+{
+    add_menu_page(
+        'Pedidos', //Titulo de la pagina
+        'Pedidos', //Titulo del menu
+        'manage_options', //Capability
+        plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+        null, //Funcion del contenido
+        plugin_dir_url(__FILE__) . 'admin/img/icon.png', //Icono
+        '2'
+    );
+	
+	add_submenu_page(
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+	'Dashboard',
+	'Dashboard',
+    'manage_options',
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php' //Slug
+
+	
+	);
+
+	
+			add_submenu_page(
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+	'Entregados',
+	'Entregados',
+	'manage_options',
+	 plugin_dir_path(__FILE__) . 'admin/Entregados.php', //Slug
+
+	
+	);
+	
+
 }
 
 
 
+//encolar bootstrap
+
+function EncolarBootstrapJS($hook){
+    //echo "<script>console.log('$hook')</script>";
+    if($hook != "sap-integration/admin/lista_formularios.php"){
+        return ;
+    }
+    wp_enqueue_script('bootstrapJs',plugins_url('admin/bootstrap/js/bootstrap.min.js',__FILE__),array('jquery'));
+}
+add_action('admin_enqueue_scripts','EncolarBootstrapJS');
 
 
+function EncolarBootstrapCSS($hook){
+    if($hook != "sap-integration/admin/lista_formularios.php"){
+        return ;
+    }
+    wp_enqueue_style('bootstrapCSS',plugins_url('admin/bootstrap/css/bootstrap.min.css',__FILE__));
+}
+add_action('admin_enqueue_scripts','EncolarBootstrapCSS');
+
+function EncolarCSS($hook){
+
+    wp_enqueue_style('CSS',plugins_url('admin/css/custom.css',__FILE__));
+}
+add_action('admin_enqueue_scripts','EncolarCSS');
 
 
 register_activation_hook(__FILE__, 'ActivateSAPIntegration');
