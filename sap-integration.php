@@ -1278,3 +1278,5 @@ add_action('admin_enqueue_scripts','EncolarCSS');
 
 register_activation_hook(__FILE__, 'ActivateSAPIntegration');
 register_deactivation_hook(__FILE__, 'DesactivateSAPIntegration');
+
+//hola
