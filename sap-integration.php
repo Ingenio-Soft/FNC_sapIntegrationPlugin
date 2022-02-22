@@ -87,19 +87,8 @@ function DesactivateSAPIntegration(){
 
   //DESACTIVAMOS CRON DE EXXE
 
-  /* $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
-  wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' ); */
-
-/*   global $wpdb;
-
-  $ordersTableName = "{$wpdb->prefix}sapwc_orders";
-  $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
-  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
-  //BORRAMOS TABLAS PARA FINES DE DESARROLLO - PRUEBAS
-
-  $wpdb->query("DROP TABLE {$ordersTableName}");
-  $wpdb->query("DROP TABLE {$orderProductsTableName}");
-  $wpdb->query("DROP TABLE {$ordersTransportGuideTableName}"); */
+  $timestamp = wp_next_scheduled( 'sap_exxe_integration_cron' );
+  wp_unschedule_event( $timestamp, 'sap_exxe_integration_cron' );
   
 
 }
@@ -480,8 +469,10 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
           array("sapOrderId" => $id));
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
+        
+        // $to = "comprocafedecolombia@cafedecolombia.com";
         $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-        $subject = "Prueba de Correo";
+        $subject = "Notificación de pedido despachado";
         $message = "Pedido con id {$id} despachado";
 
         wp_mail( $to, $subject, $message);
@@ -602,8 +593,106 @@ add_action( 'rest_api_init', function () {
       }
     ) );
   } );
+ 
+//ENDPOINT PARA CONSULTAR PRODUCTOS DE UN PEDIDO  
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/products/(?P<id>\d+)', array(
+      'methods' => 'GET',
+      'callback' => 'getOrderProducts',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
+
+//ENDPOINT PARA ELIMINAR PEDIDOS EN ESTADO 2  
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/delete/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'deleteOrder',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
 
   //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+
+  function deleteOrder($request){
+
+    global $wpdb;
+    $id = $request["id"];
+    $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+    $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
+
+    $deleteOrderProducts = "DELETE
+    FROM {$ordersProductsTable}
+    WHERE
+    mpOrder = {$id}
+    ";
+
+    $deleteOrder = "DELETE
+    FROM {$ordersInternTable}
+    WHERE
+    mpOrder = {$id} AND
+    colorNumber = 2
+    ";
+
+    $deleteResults = $wpdb->query($deleteOrder);
+    $wpdb->query($deleteOrderProducts);
+
+    if ($deleteResults > 0) {
+      $responseAPI = new WP_REST_Response( array("result" => true) );
+      return $responseAPI;
+    }
+  }
+
+  function getOrderProducts($request){
+
+    global $wpdb;
+    $id = $request["id"];
+  $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
+
+    $orderItemsQuery = "SELECT 
+    or_prod.product_net_revenue as price, 
+    or_prod.product_qty as quantity,
+    prod_extra_info.order_item_name as productName
+    FROM
+    {$wpdb->prefix}wc_order_product_lookup as or_prod
+    INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+    ON or_prod.product_id = prod_info.product_id
+    INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+    ON or_prod.order_item_id = prod_extra_info.order_item_id
+    INNER JOIN {$orderProductsMetaTableName} as orderPL
+    ON or_prod.order_item_id = orderPL.order_item_id
+    AND orderPL.meta_key = 'Vendido por'
+    WHERE 
+    or_prod.order_id = {$id} AND
+    prod_extra_info.order_id = {$id}
+    ";
+
+    $results = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+
+    $data = array(
+      "products" => $results,
+    );
+
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
+
+  }
 
     function changeOrderStatusTest($request){
 
@@ -679,14 +768,43 @@ add_action( 'rest_api_init', function () {
         "delivered" => $deliveredOrders,
       ); */
 
-      /* $estructuredData = estructureAndInsertOrderInfo($id);
+      // $estructuredData = estructureAndInsertOrderInfo($id);
 
-      global $wpdb;
+      // global $wpdb;
+      // $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
+
+      $colorNumber = getColorNumberFromExxeStatus($statusExxe);
+      
+      $data = array(
+        "status" => $statusExxe, 
+        "date" => $statusExxeDate, 
+        "color" => $colorNumber, 
+      );
+
+      /* global $wpdb;
+
       $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+      $ordersSent = "SELECT
+      orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus, orderS.colorNumber 
+      FROM
+      {$ordersInternTable} as orderS
+      WHERE
+      orderS.sapStatus = 'despachado' AND
+      (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
+      ";
+
+      $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
+
+      $data = array(
+        "results" => $ordersSentResults
+      ); */
 
       $responseAPI = new WP_REST_Response( $data );
 
-      return $responseAPI; */
+      return $responseAPI;
 
     }
 
@@ -748,25 +866,16 @@ add_action( 'rest_api_init', function () {
 
 
 
-//codigo a ejecutar al momento de ejecutarse correctamente el pago de un pedido
+/* //codigo a ejecutar al momento de ejecutarse correctamente el pago de un pedido
 function getOrderInfoAfterCheckoutProcessed($order_id) {
 
   global $wpdb;
 
-  $order = wc_get_order( $order_id );
-
   //OBTENEMOS PEDIDO, GUARDAMOS INTERNAMENTE Y RETORNAMOS DATA LISTA PARA ENVIARSE A API
   $dataToJson = estructureAndInsertOrderInfo( $order_id );
 
-  echo "Info de orden:" . $dataToJson;
-
-
-
-  echo "This is some custom text added by a function hooked to the 'woocommerce_thankyou' action.<br>";
-  echo "The billing address postcode for the order is  " . $order-> get_billing_postcode() . ".";
 }
-
-add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' );
+add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' ); */
 
 
 //CODIGO PARA ACTIVAR CRON
@@ -790,11 +899,12 @@ function exxeCron(){
 
   //hacemos query de todos los pedidos que ya hayan sido despachados por SAP:
   $ordersSent = "SELECT
-  orderS.id, orderS.mpOrder, orderS.transportGuide
+  orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus, orderS.colorNumber 
   FROM
   {$ordersInternTable} as orderS
   WHERE
-  orderS.sapStatus = 'despachado'
+  orderS.sapStatus = 'despachado' AND
+  (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
   ";
 
   $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
@@ -803,32 +913,367 @@ function exxeCron(){
   if (sizeof($ordersSentResults) > 0) {
     foreach ($ordersSentResults as $key) {
       
-      //En teoria aqui iria el codigo para extraer estado de guia de EXXE
-      $exxeStatus = "statusExxe1";
+      //PETICION A API SOAP DE EXXE PARA EXTRAER ULTIMO ESTADO Y FECHA DE ACTUALIZACION
+      [$exxeStatus, $statusExxeDate] =  getExxeStatusByTransportGuide($key["transportGuide"]);
+      //extraemos id de pedido y status exxe anterior
       $order_id = $key["id"];
+      $currentExxeStatus = $key["exxeStatus"];
+      $currentColor = $key["colorNumber"];
+      //ejecutamos actualizacion si el status exxe es diferente al anterior
+      if ($currentExxeStatus != $exxeStatus) {
+        //AQUI OBTENEMOS EL COLOR SEGUN EL ESTADO PARA ACTUALIZARLO
+        $colorNumber = getColorNumberFromExxeStatus($exxeStatus);
+        $wpdb->update(
+          $ordersInternTable, 
+          array(
+            "exxeStatus" => $exxeStatus,
+          ), 
+          array("id" => $order_id));
+          if ($currentColor != $colorNumber) {
+            $wpdb->update(
+              $ordersInternTable, 
+              array(
+                "colorNumber" => $colorNumber,
+                "exxeStatusUpdatedAt" => $statusExxeDate,
+              ), 
+              array("id" => $order_id));
+          }
 
-      //ejecutamos actualizacion
-      $wpdb->update($ordersInternTable, array("exxeStatus" => $exxeStatus), array("id" => $order_id));
-  
-  
+      }
     }
   }
+
+  //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
+  sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
+
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
+  // updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
+  updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
+  // updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
+  updateColorNumberIfTimePassed(1, 2, 15, "DAY");
 };
+
+function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
+  global $wpdb;
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+  //extraemos fecha actual para hacer comparacion
+  date_default_timezone_set("America/Bogota");
+  $currentDate = date('YmdHis');
+
+  //actualizamos cada pedido del color especificado, que haya pasado mas del tiempo especificado en ese estado, a su respectivo estado de retraso
+  $updateOrders = "UPDATE
+    {$ordersInternTable}
+    SET
+    colorNumber = {$newColor}
+    WHERE
+    colorNumber = {$currentColor} AND 
+    TIMESTAMPDIFF({$timeParamDiff}, exxeStatusUpdatedAt, {$currentDate}) > {$timeValue} 
+    ";
+
+    $wpdb->query($updateOrders);
+
+    //ESTABLECEMOS MENSAJES DE CORREO CUANDO CAMBIA A ESTADO NARANJA, MOSTRANDO INFO BASICA DE CADA PEDIDO ACTUALIZADO
+    if ($newColor == 2) {
+      sendEmailByOrderStatus($newColor, "NOTIFICADO"); 
+    }
+}
+
+function sendEmailByOrderStatus($colorNumber, $newStatus){
+  global $wpdb;
+  $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+  //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
+  $ordersDelayed = "SELECT
+      CONCAT('Pedido #', mpOrder, ' - ', customerFullName) as orderInfo
+      FROM {$ordersInternTable}
+      WHERE
+      colorNumber = {$colorNumber} AND 
+      sapStatus != '{$newStatus}'
+      ";
+      $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
+
+      //HACEMOS FOR EACH Y AGREGAMOS A ARRAY LA INFO DE CADA PEDIDO
+      if (sizeof($resultsOrders)) {
+        $ordersDelayedArrayInfo = [];
+        foreach ($resultsOrders as $key => $value) {
+          array_push($ordersDelayedArrayInfo, $value["orderInfo"]);
+        }
+        //HACEMOS JOIN AL ARREGLO:
+        $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
+        //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
+
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        if ($colorNumber == 1) {
+          $subject = "Notificación de Pedidos con novedad";
+          $messageInfo = "";
+        }else{
+          $subject = "Notificación de Pedidos con novedad que llevan más de 15 días";
+          $messageInfo = " y llevan más de 15 días en ese estado";
+        }
+        $message = "Estos son los pedidos que tuvieron alguna novedad por parte de exxe{$messageInfo}. Por favor, notificar el procedimiento a realizar con estos pedidos: \n {$ordersImploded} \n";
+  
+        $wasEmailSent = wp_mail( $to, $subject, $message);
+  
+        if ($wasEmailSent) {
+          //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+          $ordersDelayedNotified = "UPDATE
+          {$ordersInternTable}
+          SET 
+          sapStatus = '{$newStatus}'
+          WHERE
+          colorNumber = {$colorNumber}
+          ";
+          $wpdb->query($ordersDelayedNotified);
+        }
+      }
+}
+
+function getColorNumberFromExxeStatus($exxeStatus){
+
+  //SWITCH CASE POR CADA ESTADO Y RETORNAR UN NUMERO DE COLOR
+  $colorNumber = 0;
+  switch ($exxeStatus) {
+
+    //ESTADOS DE PROCESANDO / EN ENTREGA
+
+    case 'EN PREDESPACHO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA CREADA':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA ORIGEN':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA ASIGNADA A PLANILLA NACIONAL':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VEHICULO NACIONAL':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VIAJE TRONCAL':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA ENLACE':
+      $colorNumber = 4;
+      break;
+
+    case 'EN BODEGA DESTINO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA ASIGNADA A PLANILLA URBANA':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA DESASIGNADA DE LA PLANILLA':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN VEHICULO URBANO':
+      $colorNumber = 4;
+      break;
+
+    case 'GUIA EN REPARTO':
+      $colorNumber = 4;
+      break;
+
+    //ESTADOS DE ENTREGADO
+
+    case 'LLEGO AL PUNTO DE ENTREGA':
+      $colorNumber = 5;
+      break;
+
+    case 'ENTREGA A REMITENTE':
+      $colorNumber = 5;
+      break;
+
+    case 'ENTREGA EXXE':
+      $colorNumber = 5;
+      break;
+
+    //ESTADOS DE NOVEDAD
+    case 'ENTREGA PARCIAL':
+      $colorNumber = 1;
+      break;
+
+    case 'NO ENTREGADO':
+      $colorNumber = 1;
+      break;
+
+    case 'GUIA DEVUELTA A BODEGA':
+      $colorNumber = 1;
+      break;
+      
+    case 'REDIRECCION':
+      $colorNumber = 1;
+      break;
+
+    case 'REDIRECCIONADA':
+      $colorNumber = 1;
+      break;
+
+    case 'CERRAR GUIA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULACION AUTOMATICA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULACION DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'ANULADA':
+      $colorNumber = 1;
+      break;
+
+    case 'INGRESO DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'MODIFICACION DE CITA':
+      $colorNumber = 1;
+      break;
+
+    case 'GUIA CON CITA REPROGRAMADA':
+      $colorNumber = 1;
+      break;
+    
+    default:
+    $colorNumber = 0;
+      break;
+  }
+
+  return $colorNumber;
+}
+
+function getExxeStatusByTransportGuide($transportGuide){
+
+  //inicializamos soap client
+  $client = new SoapClient('http://solex.blulogistics.net/solexrc/services/webservicesolex.asmx?wsdl');
+  //creamos params para el body de la peticion
+  $params->user = "wsfedbog";
+  $params->password = "wsfedbog";
+  $params->numero = $transportGuide;
+
+  //ejecutamos metodo de exxe para obtener estado de guia dentro de un trycatch
+  try {
+    //echo 'fv' . print_r($params);
+    $result = $client->ConsultaGuia($params);
+    //var_dump($result);
+  } 
+  catch (SOAPFault $f) {
+    echo $f->getMessage();
+  }
+
+  //Extraemos ultimo estado del array o objeto estados, incluyendo su fecha:
+  if(is_array( $result->ConsultaGuiaResult->Estados->EEstadoGuia)){
+    $statusArray = $result->ConsultaGuiaResult->Estados->EEstadoGuia;
+    $lastStatusInfo = $statusArray[sizeof($statusArray) - 1]; 
+  }
+	else
+  $lastStatusInfo = $result->ConsultaGuiaResult->Estados->EEstadoGuia;
+  
+  $guideStatus = $lastStatusInfo->Estado;
+  $guideStatusDate = $lastStatusInfo->FechaEstado;
+
+  return [$guideStatus, $guideStatusDate];
+
+}
 
 //anadimos custom hook con funcion de cron y lo programamos
 
-/* add_action( 'sap_exxe_integration_cron', 'exxeCron');
+add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
   wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
-} */
+}
+
+/*----------------------------------------------------------------------*/
+
+//CONFIGURACION PARTE VISUAL
+
+/*AGREGAR PLUGIN A BARRA LATERAL*/
+
+add_action('admin_menu', 'CrearMenu');
+
+function CrearMenu()
+{
+    add_menu_page(
+        'Pedidos', //Titulo de la pagina
+        'Pedidos', //Titulo del menu
+        'manage_options', //Capability
+        plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+        null, //Funcion del contenido
+        plugin_dir_url(__FILE__) . 'admin/img/icon.png', //Icono
+        '2'
+    );
+	
+	add_submenu_page(
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+	'Dashboard',
+	'Dashboard',
+    'manage_options',
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php' //Slug
+
+	
+	);
+
+	
+			add_submenu_page(
+	 plugin_dir_path(__FILE__) . 'admin/lista_formularios.php', //Slug
+	'Entregados',
+	'Entregados',
+	'manage_options',
+	 plugin_dir_path(__FILE__) . 'admin/Entregados.php', //Slug
+
+	
+	);
+	
+
+}
 
 
 
+//encolar bootstrap
+
+function EncolarBootstrapJS($hook){
+    //echo "<script>console.log('$hook')</script>";
+    if($hook != "sap-integration/admin/lista_formularios.php"){
+        return ;
+    }
+    wp_enqueue_script('bootstrapJs',plugins_url('admin/bootstrap/js/bootstrap.min.js',__FILE__),array('jquery'));
+}
+add_action('admin_enqueue_scripts','EncolarBootstrapJS');
 
 
+function EncolarBootstrapCSS($hook){
+    if($hook != "sap-integration/admin/lista_formularios.php"){
+        return ;
+    }
+    wp_enqueue_style('bootstrapCSS',plugins_url('admin/bootstrap/css/bootstrap.min.css',__FILE__));
+}
+add_action('admin_enqueue_scripts','EncolarBootstrapCSS');
+
+function EncolarCSS($hook){
+
+    wp_enqueue_style('CSS',plugins_url('admin/css/custom.css',__FILE__));
+}
+add_action('admin_enqueue_scripts','EncolarCSS');
 
 
 register_activation_hook(__FILE__, 'ActivateSAPIntegration');
