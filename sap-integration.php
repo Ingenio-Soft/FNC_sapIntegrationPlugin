@@ -1253,7 +1253,7 @@ function CrearMenu()
 
 function EncolarBootstrapJS($hook){
     //echo "<script>console.log('$hook')</script>";
-    if($hook != "sap-integration/admin/lista_formularios.php"){
+    if($hook != "sap-integration/admin/lista_formularios.php" and $hook != "sap-integration/admin/Entregados.php"){
         return ;
     }
     wp_enqueue_script('bootstrapJs',plugins_url('admin/bootstrap/js/bootstrap.min.js',__FILE__),array('jquery'));
@@ -1262,11 +1262,13 @@ add_action('admin_enqueue_scripts','EncolarBootstrapJS');
 
 
 function EncolarBootstrapCSS($hook){
-    if($hook != "sap-integration/admin/lista_formularios.php"){
+    if($hook != "sap-integration/admin/lista_formularios.php" and $hook != "sap-integration/admin/Entregados.php" ){
         return ;
     }
     wp_enqueue_style('bootstrapCSS',plugins_url('admin/bootstrap/css/bootstrap.min.css',__FILE__));
 }
+
+
 add_action('admin_enqueue_scripts','EncolarBootstrapCSS');
 
 function EncolarCSS($hook){
@@ -1278,3 +1280,5 @@ add_action('admin_enqueue_scripts','EncolarCSS');
 
 register_activation_hook(__FILE__, 'ActivateSAPIntegration');
 register_deactivation_hook(__FILE__, 'DesactivateSAPIntegration');
+
+//hola
