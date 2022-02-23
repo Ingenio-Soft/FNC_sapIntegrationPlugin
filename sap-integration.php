@@ -124,7 +124,7 @@ function estructureAndInsertOrderInfo($id){
   $orderHeadersAndCustomerQuery = "SELECT 
   orderS.order_id as mpOrder,
   orderS.date_created as orderDate,
-  orderS.net_total as totalPrice,
+  orderS.total_sales as totalPrice,
   orderGuide.transportGuide,
   orderGuide.docNumber,
   orderS.customer_id
@@ -472,8 +472,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
         
         // $to = "comprocafedecolombia@cafedecolombia.com";
         $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-        $subject = "Notificación de pedido despachado";
-        $message = "Pedido con id {$id} despachado";
+        $subject = "Pedido #{$orderById["mpOrder"]} despachado";
+        $message = "El pedido #{$id}, guía {$orderById["transportGuide"]} ha sido despachado.";
 
         wp_mail( $to, $subject, $message);
       }
