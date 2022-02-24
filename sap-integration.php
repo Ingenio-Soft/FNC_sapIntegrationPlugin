@@ -1249,6 +1249,7 @@ function getExxeStatusByTransportGuide($transportGuide){
 
 //anadimos custom hook con funcion de cron y lo programamos
 
+
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
