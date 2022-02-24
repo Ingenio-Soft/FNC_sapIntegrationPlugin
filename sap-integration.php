@@ -17,6 +17,7 @@ function ActivateSAPIntegration(){
 $ordersTableName = "{$wpdb->prefix}sapwc_orders";
 $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
 $orderProductsTableName = "{$wpdb->prefix}sapwc_order_products";
+$orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
 
   //CREAMOS TABLAS PARA MANEJO INTERNO DE PEDIDOS Y SUS PRODUCTOS
   //Tabla interna de pedidos
@@ -72,6 +73,19 @@ $wpdb->query($createOrdersTableQuery);
     docNumber varchar(20) NOT NULL,
 	createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, 
     CONSTRAINT sapwc_orders_transportguides PRIMARY KEY (id)
+  )
+  ENGINE=MyISAM
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_520_ci;
+  ";
+
+  $wpdb->query($createOrderTransportGuideTableQuery);
+
+  $createOrderTransportGuideTableQuery = "CREATE TABLE IF NOT EXISTS {$orderMessagesTableName} (
+    id INT NOT NULL AUTO_INCREMENT,
+    mpOrder INT NOT NULL,
+    message varchar(500) NOT NULL,
+    CONSTRAINT sapwc_order_sapmessages PRIMARY KEY (id)
   )
   ENGINE=MyISAM
   DEFAULT CHARSET=utf8mb4
@@ -358,7 +372,7 @@ function insertTransportGuideInInternTable($order_id, $transport_guide, $order, 
 }
 
 //FUNCION CENTRALIZADA PARA LOGICA DE MANEJO DE ESTADOS EN AMBOS ENDPOINTS
-function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
+function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messages){
 
   global $wpdb;
 
@@ -375,6 +389,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
   $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
   $customersTable = "{$wpdb->prefix}wc_customer_lookup";
+  $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
 
   //Validamos que existan tablas
   $ordersTableInternExists = $wpdb->query("SHOW TABLES like {$ordersInternTable}");
@@ -396,6 +411,10 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
   orderW.mpOrder, orderW.transportGuide,
   orderW.sapStatus as orderStatus, 
   orderW.customerFullName,
+  CONCAT('$', orderW.totalPrice) as totalPrice,
+  orderW.phoneNumber,
+  orderW.orderAddress,
+  orderW.orderDate,
   orderW.email, orderW.city,
   orderW.department
   FROM 
@@ -446,11 +465,29 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
           $update = 2;
 
         }else{
-          $newSapStatus = "procesado";      
+          $newSapStatus = $status;      
           $update = $wpdb->update( 
             $ordersInternTable, 
             array("sapStatus" => $newSapStatus, "sapOrderId" => $sapId), 
             array("mpOrder" => $id));
+            if ($messages != null) {
+              $queryMessages = "SELECT
+              mpOrder
+              FROM {$orderMessagesTableName}
+              WHERE
+              mpOrder = {$id}
+              ";
+              $resultsMessages = $wpdb->get_results($queryMessages, ARRAY_A);
+              if (sizeof($resultsMessages) == 0) {
+                foreach ($messages as $key) {
+                  $wpdb->insert( $orderMessagesTableName, 
+                  array(
+                    "mpOrder" => $id,
+                    "message" => $key,
+                  ));
+                }
+              }
+            }
         }
         
 
@@ -472,10 +509,41 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId){
         
         // $to = "comprocafedecolombia@cafedecolombia.com";
         $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-        $subject = "Pedido #{$orderById["mpOrder"]} despachado";
-        $message = "El pedido #{$id}, guía {$orderById["transportGuide"]} ha sido despachado.";
+        $subject = "Pedido #{$orderById[0]["mpOrder"]} despachado";
+        $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido despachado.";
 
         wp_mail( $to, $subject, $message);
+        //NOTIFICACION DE DESPACHADO A CLIENTE
+
+        $orderItemsQuery = "SELECT 
+          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
+          FROM
+          {$wpdb->prefix}wc_order_product_lookup as or_prod
+          INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+          ON or_prod.product_id = prod_info.product_id
+          INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+          ON or_prod.order_item_id = prod_extra_info.order_item_id
+          INNER JOIN {$orderProductsMetaTableName} as orderPL
+          ON or_prod.order_item_id = orderPL.order_item_id
+          AND orderPL.meta_key = 'Vendido por'
+          WHERE 
+          or_prod.order_id = {$id} AND
+          prod_extra_info.order_id = {$id}
+          ";
+
+          $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+
+          $orderDateFormatted = explode(" ", $orderById[0]["orderDate"]);
+          $productsInfoArray = array_map(function($product){
+            return $product["productInfo"];
+          }, $orderItemsResult);
+          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+
+        $toClient = $orderById[0]["email"];
+        $subjectClient = "Su Pedido #{$orderById[0]["mpOrder"]} ha sido despachado";
+        $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$orderById[0]["customerFullName"]}\n\nSolo para que lo sepas -- hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido despachado a la dirección de envío otorgada:\n\n[PEDIDO #{$orderById[0]["mpOrder"]}] ({$orderDateFormatted[0]})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$orderById[0]["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$orderById[0]["customerFullName"]}\n{$orderById[0]["orderAddress"]}\n{$orderById[0]["city"]}\n{$orderById[0]["department"]}\n{$orderById[0]["phoneNumber"]}\n{$orderById[0]["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
+
+        wp_mail( $toClient, $subjectClient, $messageClient);
       }
 
       //validamos retorno del update y devolvemos feedback en cada caso
@@ -697,81 +765,6 @@ add_action( 'rest_api_init', function () {
     function changeOrderStatusTest($request){
 
       $id = $request["id"];
-      
-      //DESARROLLO - PROBAR CREACION DE PEDIDO POR API
-
-      //queries:
-
-      //QUERY PARA LA TABLA DEL DASHBOARD
-
-      /* $mainQuery = "SELECT 
-      CONCAT('#', orderW.mpOrder, ' ', orderW.customerFullName) as orderNumberName,
-      orderW.phoneNumber,
-      orderW.orderDate,
-      orderW.sapOrderDateShipped,
-      orderW.totalPrice,
-      orderW.colorNumber
-      FROM 
-      {$ordersInternTable} as orderW
-      ORDER BY 
-          orderW.colorNumber ASC,
-          orderW.exxeStatusUpdatedAt DESC  
-      ";
-      //array para el foreach
-      $mainResults = $wpdb->get_results($mainQuery, ARRAY_A);
-
-
-      //QUERY PARA CARD DASHBOARD - FUNCION
-      function getCardNumber($status){
-        global $wpdb;
-        $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
-
-        $mainQuery = "SELECT 
-        CONCAT_WS(' ', orderW.mpOrder, orderW.customerFullName) as orderNumberName,
-        orderW.phoneNumber,
-        orderW.orderDate,
-        orderW.sapOrderDateShipped,
-        orderW.totalPrice,
-        orderW.colorNumber
-        FROM 
-        {$ordersInternTable} as orderW
-        WHERE
-        orderW.colorNumber = {$status}
-        ORDER BY
-        orderW.exxeStatusUpdatedAt DESC    
-        ";
-        $results = $wpdb->get_results($mainQuery, ARRAY_A);
-        return $results;
-      }
-
-      //EN PROCESO:
-      $inProcessOrders = sizeof(getCardNumber(4));
-      //EN RETRASO  :
-      $delayedOrders = sizeof(getCardNumber(3));
-      //Con novedades  :
-      $novedadOrders = sizeof(getCardNumber(1));
-      //Mas de 15 dias con novedad  :
-      $novedadDelayedOrders = sizeof(getCardNumber(2));
-      //Entregados  :
-      $deliveredOrders = sizeof(getCardNumber(5));
-
-      $novedadOrdersTable = getCardNumber(1);
-      $deliveredOrdersTable = getCardNumber(5);
-
-      $data = array(
-        "dataToJson" => $estructuredData,
-        "mainQuery" => $mainResults,
-        "inProcess" => $inProcessOrders,
-        "delayed" => $delayedOrders,
-        "novedad" => $novedadOrders,
-        "novedadDelayed" => $novedadDelayedOrders,
-        "delivered" => $deliveredOrders,
-      ); */
-
-      // $estructuredData = estructureAndInsertOrderInfo($id);
-
-      // global $wpdb;
-      // $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
       [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
 
@@ -782,25 +775,6 @@ add_action( 'rest_api_init', function () {
         "date" => $statusExxeDate, 
         "color" => $colorNumber, 
       );
-
-      /* global $wpdb;
-
-      $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
-
-      $ordersSent = "SELECT
-      orderS.id, orderS.mpOrder, orderS.transportGuide, orderS.exxeStatus, orderS.colorNumber 
-      FROM
-      {$ordersInternTable} as orderS
-      WHERE
-      orderS.sapStatus = 'despachado' AND
-      (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
-      ";
-
-      $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
-
-      $data = array(
-        "results" => $ordersSentResults
-      ); */
 
       $responseAPI = new WP_REST_Response( $data );
 
@@ -817,23 +791,31 @@ add_action( 'rest_api_init', function () {
     $data;
     $statusCode;
     $sapOrderId = $request["sapOrderId"];
+    $status = $request["status"];
+    $messages = $request["messages"];
     if ($sapOrderId == null || $sapOrderId == "" || $sapOrderId == undefined) {
       $data = array(
-        "status" => "404",
+        "status" => "400",
         "error" => "El ID del pedido de SAP debe ser enviado obligatoriamente.",
       );
-      $statusCode = 404;
+      $statusCode = 400;
     }
-    //VALIDACION EN CASO DE REQUERIRSE QUE SEA NUMERICO
-    /* elseif( !is_numeric($sapOrderId) ){
+    elseif ($status == null || $status == "" || $status == undefined) {
       $data = array(
-        "status" => "404",
-        "error" => "El ID del pedido de SAP debe ser de tipo numérico.",
+        "status" => "400",
+        "error" => "El status del pedido de SAP debe ser enviado obligatoriamente.",
       );
-      $statusCode = 404;
-    } */
+      $statusCode = 400;
+    }
+    elseif ($messages !== null && !is_array($messages)) {
+        $data = array(
+          "status" => "400",
+          "error" => "Los mensajes de error de SAP correspondientes al pedido deben ser enviados como un array.",
+        );
+        $statusCode = 400;
+    }
     else{
-      $dataAndStatus = handlerOrderStatusByEndpoint($id, true, $sapOrderId);
+      $dataAndStatus = handlerOrderStatusByEndpoint($id, true, $sapOrderId, $status, $messages);
       $data = $dataAndStatus["data"];
       $statusCode = $dataAndStatus["statusCode"];
     }
@@ -852,7 +834,7 @@ add_action( 'rest_api_init', function () {
 
     $id = $request["id"];
 
-    $dataAndStatus = handlerOrderStatusByEndpoint($id, false, null);
+    $dataAndStatus = handlerOrderStatusByEndpoint($id, false, null, null, null);
     $data = $dataAndStatus["data"];
     $statusCode = $dataAndStatus["statusCode"];
     
@@ -945,14 +927,16 @@ function exxeCron(){
 
   //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
   sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
+  //NOTIFICAMOS A CLIENTE PEDIDOS QUE HAYAN SIDO ENTREGADOS
+  sendEmailByOrderStatus(5, "ENTREGADO NOTIFICADO");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-  // updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
-  updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+  updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
+  // updateColorNumberIfTimePassed(4, 3, 7, "DAY");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-  // updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
-  updateColorNumberIfTimePassed(1, 2, 15, "DAY");
+  updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
+  // updateColorNumberIfTimePassed(1, 2, 15, "DAY");
 };
 
 function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
@@ -985,51 +969,121 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
-  //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
-  $ordersDelayed = "SELECT
-      CONCAT('Pedido #', mpOrder, ' - ', customerFullName) as orderInfo
-      FROM {$ordersInternTable}
-      WHERE
-      colorNumber = {$colorNumber} AND 
-      sapStatus != '{$newStatus}'
-      ";
-      $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
+  if ($colorNumber == 5) {
+    
+  $queryEntregados = "SELECT 
+  orderW.mpOrder, orderW.transportGuide,
+  orderW.sapStatus as orderStatus, 
+  orderW.customerFullName,
+  CONCAT('$', orderW.totalPrice) as totalPrice,
+  orderW.phoneNumber,
+  orderW.orderAddress,
+  orderW.orderDate,
+  orderW.email, orderW.city,
+  orderW.department
+  FROM {$ordersInternTable}
+    WHERE
+    colorNumber = {$colorNumber} AND 
+    sapStatus != '{$newStatus}'
+  ";
 
-      //HACEMOS FOR EACH Y AGREGAMOS A ARRAY LA INFO DE CADA PEDIDO
-      if (sizeof($resultsOrders)) {
-        $ordersDelayedArrayInfo = [];
-        foreach ($resultsOrders as $key => $value) {
-          array_push($ordersDelayedArrayInfo, $value["orderInfo"]);
-        }
-        //HACEMOS JOIN AL ARREGLO:
-        $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
-        //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
-
-        // $to = "comprocafedecolombia@cafedecolombia.com";
-        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-        if ($colorNumber == 1) {
-          $subject = "Notificación de Pedidos con novedad";
-          $messageInfo = "";
-        }else{
-          $subject = "Notificación de Pedidos con novedad que llevan más de 15 días";
-          $messageInfo = " y llevan más de 15 días en ese estado";
-        }
-        $message = "Estos son los pedidos que tuvieron alguna novedad por parte de exxe{$messageInfo}. Por favor, notificar el procedimiento a realizar con estos pedidos: \n {$ordersImploded} \n";
-  
-        $wasEmailSent = wp_mail( $to, $subject, $message);
-  
-        if ($wasEmailSent) {
-          //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
-          $ordersDelayedNotified = "UPDATE
-          {$ordersInternTable}
-          SET 
-          sapStatus = '{$newStatus}'
-          WHERE
-          colorNumber = {$colorNumber}
+  $resultsEntregados = $wpdb->get_results($queryEntregados, ARRAY_A);
+  if (sizeof($resultsEntregados) > 0) {
+    foreach ($resultsEntregados as $key => $value) {
+      $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
+      $orderItemsQuery = "SELECT 
+          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
+          FROM
+          {$wpdb->prefix}wc_order_product_lookup as or_prod
+          INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+          ON or_prod.product_id = prod_info.product_id
+          INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+          ON or_prod.order_item_id = prod_extra_info.order_item_id
+          INNER JOIN {$orderProductsMetaTableName} as orderPL
+          ON or_prod.order_item_id = orderPL.order_item_id
+          AND orderPL.meta_key = 'Vendido por'
+          WHERE 
+          or_prod.order_id = {$value["mpOrder"]} AND
+          prod_extra_info.order_id = {$value["mpOrder"]}
           ";
-          $wpdb->query($ordersDelayedNotified);
-        }
+          $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+
+          $orderDateFormatted = explode(" ", $value["orderDate"]);
+          $productsInfoArray = array_map(function($product){
+            return $product["productInfo"];
+          }, $orderItemsResult);
+          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+
+          $toClient = $value["email"];
+          $subjectClient = "Su Pedido #{$value["mpOrder"]} ha sido entregado";
+          $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$value["customerFullName"]}\n\nSolo para que lo sepas -- hemos entregado tu pedido a la dirección de envío otorgada:\n\n[PEDIDO #{$value["mpOrder"]}] ({$orderDateFormatted})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$value["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$value["customerFullName"]}\n{$value["orderAddress"]}\n{$value["city"]}\n{$value["department"]}\n{$value["phoneNumber"]}\n{$value["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
+  
+          $wasEmailSent = wp_mail( $toClient, $subjectClient, $messageClient);
+          if ($wasEmailSent) {
+            //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+            $ordersDeliveredNotified = "UPDATE
+            {$ordersInternTable}
+            SET 
+            sapStatus = '{$newStatus}'
+            WHERE
+            colorNumber = {$colorNumber}
+            ";
+            $wpdb->query($ordersDeliveredNotified);
+          }
+    }
+  }
+  }
+  else{
+    //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
+    $ordersDelayed = "SELECT
+    CONCAT('Pedido #', mpOrder, ' - guía: ', transportGuide, ' - ', customerFullName) as orderInfo
+    FROM {$ordersInternTable}
+    WHERE
+    colorNumber = {$colorNumber} AND 
+    sapStatus != '{$newStatus}'
+    ";
+    $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
+
+    //HACEMOS FOR EACH Y AGREGAMOS A ARRAY LA INFO DE CADA PEDIDO
+    if (sizeof($resultsOrders)) {
+      $ordersDelayedArrayInfo = [];
+      foreach ($resultsOrders as $key => $value) {
+        array_push($ordersDelayedArrayInfo, $value["orderInfo"]);
       }
+      //HACEMOS JOIN AL ARREGLO:
+      $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
+      //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
+
+      // $to = "comprocafedecolombia@cafedecolombia.com";
+      $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+      if ($colorNumber == 1) {
+        $subject = "Pedidos con novedad";
+        $messageInfo = "";
+        $predicateInfo = "Por favor, recuerde validar con Exxe Logística el estado del pedido.";
+      }else{
+        $subject = "Pedidos con novedad que llevan más de 15 días";
+        $messageInfo = " y llevan más de 15 días sin entregar";
+        $predicateInfo = "Por favor, recuerde ingresar a la página de administración y eliminar los pedidos si es necesario.";
+      }
+      $message = "Estos son los pedidos que tuvieron alguna novedad por parte de Exxe Logística{$messageInfo}. {$predicateInfo} \n {$ordersImploded} \n";
+
+      $wasEmailSent = wp_mail( $to, $subject, $message);
+
+      if ($wasEmailSent) {
+        //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+        $ordersDelayedNotified = "UPDATE
+        {$ordersInternTable}
+        SET 
+        sapStatus = '{$newStatus}'
+        WHERE
+        colorNumber = {$colorNumber}
+        ";
+        $wpdb->query($ordersDelayedNotified);
+      }
+    }
+  }
+
+  
 }
 
 function getColorNumberFromExxeStatus($exxeStatus){
@@ -1198,9 +1252,9 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
 
 /*----------------------------------------------------------------------*/
