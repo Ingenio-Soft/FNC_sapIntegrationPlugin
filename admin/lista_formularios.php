@@ -1,8 +1,71 @@
 <?php
+
 //RAMA SEBASTIAN
 
 global $wpdb;
       $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+//QUERY PARA OBTENER TODAS LAS CIUDADES
+$queryCiudades = "SELECT wso.city as ciudad 
+FROM {$ordersInternTable} as wso
+GROUP BY
+wso.city";
+$resultCiudades = $wpdb->get_results($queryCiudades, ARRAY_A);
+
+//QUERY PARA OBTENER TODOS LOS CLIENTES:
+$orderCustomersTable = "{$wpdb->prefix}wc_customer_lookup";
+$queryCustomers = "SELECT CONCAT(wwcl.first_name, ' ', wwcl.last_name) as name,
+wwcl.customer_id AS id
+FROM {$orderCustomersTable} as wwcl
+WHERE
+wwcl.first_name != ''
+ORDER BY
+wwcl.first_name ASC
+"; 
+$resultCustomers = $wpdb->get_results($queryCustomers, ARRAY_A);
+$filtroMes = "";
+$filtroCiudad = "";
+$filtroCliente = "";
+$selectFilters = "";
+$tablasClienteQuery  = "";
+if (isset($_POST["filtrar"])) {
+  $filtroMes = $_POST["filtroMes"];
+  $filtroCiudad = $_POST["filtroCiudad"];
+  $filtroCliente = $_POST["filtroCliente"];
+  	$filtroMesQuery = "";
+	$filtroCiudadQuery = "";
+	$filtroClienteQuery = "";
+	$selectFiltersArray = [];
+  if ($filtroMes !== null && $filtroMes !== "") {
+	$filtroMesQuery = "
+	MONTH(orderW.orderDate) = {$filtroMes} 
+	";
+	array_push($selectFiltersArray, $filtroMesQuery);
+  }
+  
+  if ($filtroCiudad !== null && $filtroCiudad !== "") {
+	$filtroCiudadQuery = "
+	orderW.city = '{$filtroCiudad}' 
+	";
+	array_push($selectFiltersArray, $filtroCiudadQuery);
+  }
+  
+  if ($filtroCliente !== null && $filtroCliente !== "") {
+	$filtroClienteQuery = "
+	wwcl.customer_id = {$filtroCliente}
+	";
+	$tablasClienteQuery = "
+	INNER JOIN wpme_wc_order_stats wwos 
+  ON wwos.order_id = orderW.mpOrder
+  INNER JOIN wpme_wc_customer_lookup ";
+  array_push($selectFiltersArray, $filtroClienteQuery);
+}
+$selectFilters = implode(" AND ", $selectFiltersArray) .' AND ';	
+
+}
+var_dump($selectFilters);
+var_dump($tablasClienteQuery);
+
 
 $valueFilter = "orderW.colorNumber != 5";
 $value = "0";
@@ -39,20 +102,25 @@ $pagina = 1;
 if(isset($_POST["pagina"])){
 	$pagina = $_POST["pagina"];	
 }
-
+var_dump($valueFilter);
+var_dump($busquedaFilter);
 //LIMITE POR PAGINA
 $por_pagina = floatval(5);
 //CALCULO PARA EL OFFSET DEL QUERY
 $empieza = ($pagina-1)* $por_pagina;
 //HACEMOS SPLIT DEL VALUE FILTER PARA INCLUIRLO EN EL CONTADOR DE TODOS LOS PEDIDOS
 $replaceValueFilter = str_replace("orderW.", "", $valueFilter);
+$replaceSelectFilters = str_replace("orderW.", "", $selectFilters);
 //QUERY PARA CONTAR TODOS LOS PEDIDOS CON LOS FILTROS SELECCIONADOS
 //VARIABLE PARA DEFINIR FILTRO DE BUSQUEDA
 $conditionalSearch = $busquedaFilter != '' ? "AND " . $busquedaFilter : '';
 $query3 = "SELECT 
     mpOrder 
-    FROM $ordersInternTable 
-    WHERE {$replaceValueFilter} 
+    FROM {$ordersInternTable}
+	{$tablasClienteQuery}
+    WHERE
+	{$replaceSelectFilters}  
+	{$replaceValueFilter} 
     {$conditionalSearch}
     ";
 
@@ -83,9 +151,11 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 	  phoneNumber,
 	  department,
       orderW.colorNumber
-      FROM 
+      FROM
       {$ordersInternTable} as orderW
+	  {$tablasClienteQuery}
 	  WHERE
+	  {$selectFilters}  
 	  {$valueFilter}
       {$conditionalSearch}
       ORDER BY 
@@ -1151,25 +1221,67 @@ font-weight: bolder;
   
  
 	</div>
-
+<form method="POST" >
 	<div class="d-flex mb-3 mt-3">
-  
-	  <select id="my-select" class="wp-core-ui" name="">
-	  <option value="" >Elige una fecha</option>
+
+
+
+
+	  <select id="my-select" class="wp-core-ui" name="filtroMes">
+	  <option value="" >Elige un mes</option>
+	  <option value="1" >Enero</option>
+	  <option value="2" >Febrero</option>
+	  <option value="3" >Marzo</option>
+	  <option value="4" >Abril</option>
+	  <option value="5" >Mayo</option>
+	  <option value="6" >Junio</option>
+	  <option value="7" >Junio</option>
+	  <option value="8" >Agosto</option>
+	  <option value="9" >Septiembre</option>
+	  <option value="10" >Octubre</option>
+	  <option value="11" >Noviembre</option>
+	  <option value="12" >Diciembre</option>
 	  </select>
-	  <select id="my-select" class="wp-core-ui" name="">
+	  <select id="my-select" class="wp-core-ui" name="filtroCiudad">
 	  <option value="" >Elige una ciudad</option>
+<?php
+foreach ($resultCiudades as $key => $value) {
+	?>
+	 <option value="<?php echo $value["ciudad"]; ?>" ><?php echo $value["ciudad"]; ?></option>
+	<?php
+}
+
+?>
 	  </select>
-	  <select id="my-select" class="wp-core-ui" name="">
+	  <select id="my-select" class="wp-core-ui" name="filtroCliente">
 	  <option value="" >Elige un cliente</option>
+	  <?php
+foreach ($resultCustomers as $key => $value) {
+	?>
+	 <option value="<?php echo $value["id"]; ?>" ><?php echo $value["name"]; ?></option>
+	<?php
+}
+
+?>
 	  </select>
 	  <button type="submit" name="filtrar" class="button filter "><span
           class="dashicons dashicons2 dashicons-filter"></span>Filtrar</button>
+
+
+
 	</div>
+
+</form>
+
+
+
 <form id="formPagination" method="POST">
-    <input type="hidden" name="pagina">
-    <input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
-    <input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
+<input type="hidden" name="filtroMes" value="<?php echo $filtroMes; ?>">
+<input type="hidden" name="filtroCiudad" value="<?php echo $filtroCiudad; ?>">
+<input type="hidden" name="filtroCliente" value="<?php echo $filtroCliente; ?>">
+<input type="hidden" name="pagina">
+<input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
+<input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
 </form>
 
 
