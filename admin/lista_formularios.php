@@ -23,9 +23,8 @@ ORDER BY
 wwcl.first_name ASC
 "; 
 $resultCustomers = $wpdb->get_results($queryCustomers, ARRAY_A);
-$filtroMes = "";
-$filtroCiudad = "";
-$filtroCliente = "";
+
+
 $selectFilters = "";
 $tablasClienteQuery  = "";
 if (isset($_POST["filtrar"])) {
@@ -95,7 +94,7 @@ if(isset($_POST["valuefilters"])){
             $valueFilter = "orderW.colorNumber = {$value}";
         }
              }else{
-				 $valueFilter = "orderW.colorNumber != 5";
+				 $valueFilter = "orderW.colorNumber != 5 OR ISNULL(orderW.colorNumber)";
 			 }
 }
 $pagina = 1;
@@ -1276,12 +1275,9 @@ foreach ($resultCustomers as $key => $value) {
 
 
 <form id="formPagination" method="POST">
-<input type="hidden" name="filtroMes" value="<?php echo $filtroMes; ?>">
-<input type="hidden" name="filtroCiudad" value="<?php echo $filtroCiudad; ?>">
-<input type="hidden" name="filtroCliente" value="<?php echo $filtroCliente; ?>">
-<input type="hidden" name="pagina">
-<input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
-<input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
+    <input type="hidden" name="pagina">
+    <input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
+    <input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
 </form>
 
 
