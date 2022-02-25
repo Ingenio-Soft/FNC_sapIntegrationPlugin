@@ -177,13 +177,22 @@ function estructureAndInsertOrderInfo($id){
   $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
   $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
+  $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+  $codigoDepartment = 0;
+	foreach ($shipments as $key => $value) {
+		if($value['DEPARTAMENTO'] == $order_data['billing']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['billing']['city']))
+		{
+			$codigoDepartment = $value['CODDEPARTAMENTO'];
+		}
+	};
+
   $orderForRequestBody = array(
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['billing']['address_1'],
-      "city" => $order_data['billing']['city'],
-      "department" => $order_data['billing']['state'],
+      "city" => strtoupper($order_data['billing']['city']),
+      "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
     ),
@@ -209,12 +218,16 @@ function estructureAndInsertOrderInfo($id){
 
   $estructureOrderInfo = function($order, $orderForRequestBody){
 
+      $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
+      $stateKey = array_search($orderForRequestBody["department"], array_column($states, 'c_digo_dane_del_departamento'));
+      $nameDepartment = $states[$stateKey]["departamento"];
+
     return array(
       "transportGuide"      => $order["transportGuide"],
       "mpOrder"             => $order["mpOrder"],
       "orderAddress"        => $orderForRequestBody["address"],
       "city"                => $orderForRequestBody["city"],
-      "department"          => $orderForRequestBody["department"],
+      "department"          => $nameDepartment,
       "docNumber"           => $orderForRequestBody["docNumber"],  //FALTA DOCNUMBER $orderForRequestBody["docNumber"],
       "customerFullName"    => $orderForRequestBody["name"],
       "phoneNumber"         => $orderForRequestBody["phoneNumber"],
@@ -764,7 +777,7 @@ add_action( 'rest_api_init', function () {
 
     function changeOrderStatusTest($request){
 
-      $id = $request["id"];
+      /* $id = $request["id"];
 
       [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
 
@@ -774,6 +787,26 @@ add_action( 'rest_api_init', function () {
         "status" => $statusExxe, 
         "date" => $statusExxeDate, 
         "color" => $colorNumber, 
+      ); */
+
+      $city = $request["city"];
+      $state = $request["state"];
+      $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+      $codigoDepartment = 0;
+      $nameDepartment = "";
+			foreach ($shipments as $key => $value) {
+				if($value['DEPARTAMENTO'] == $state && $value['MUNICIPIO'] == strtoupper($city))
+				{
+					$codigoDepartment = $value['CODDEPARTAMENTO'];
+          $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
+          $stateKey = array_search($codigoDepartment, array_column($states, 'c_digo_dane_del_departamento'));
+          $nameDepartment = $states[$stateKey]["departamento"];
+				}
+			};
+
+      $data = array(
+        "codigo" => $codigoDepartment,
+        "Nombre de Departamento" => $nameDepartment
       );
 
       $responseAPI = new WP_REST_Response( $data );
@@ -790,27 +823,36 @@ add_action( 'rest_api_init', function () {
     //validamos que venga el sapOrderId por el body:
     $data;
     $statusCode;
-    $sapOrderId = $request["sapOrderId"];
+    $sapOrderId = $request["sapDeliveryId"];
     $status = $request["status"];
     $messages = $request["messages"];
+    $statusValues = ["No relevante", "A", "B", "C"];
+    $statusValueJoin = implode(", ", $statusValues);
     if ($sapOrderId == null || $sapOrderId == "" || $sapOrderId == undefined) {
       $data = array(
         "status" => "400",
-        "error" => "El ID del pedido de SAP debe ser enviado obligatoriamente.",
+        "message" => "El ID de entrega del pedido de SAP debe ser enviado obligatoriamente.",
       );
       $statusCode = 400;
     }
     elseif ($status == null || $status == "" || $status == undefined) {
       $data = array(
         "status" => "400",
-        "error" => "El status del pedido de SAP debe ser enviado obligatoriamente.",
+        "message" => "El status del pedido de SAP debe ser enviado obligatoriamente.",
+      );
+      $statusCode = 400;
+    }
+    elseif (!in_array($status, $statusValues)) {
+      $data = array(
+        "status" => "400",
+        "message" => "El Status de pedido de SAP no es válido, debe ser uno de los siguientes: {$statusValueJoin}",
       );
       $statusCode = 400;
     }
     elseif ($messages !== null && !is_array($messages)) {
         $data = array(
           "status" => "400",
-          "error" => "Los mensajes de error de SAP correspondientes al pedido deben ser enviados como un array.",
+          "message" => "Los mensajes de error de SAP correspondientes al pedido deben ser enviados como un array.",
         );
         $statusCode = 400;
     }
@@ -981,10 +1023,10 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
   orderW.orderDate,
   orderW.email, orderW.city,
   orderW.department
-  FROM {$ordersInternTable}
+  FROM {$ordersInternTable} as orderW
     WHERE
-    colorNumber = {$colorNumber} AND 
-    sapStatus != '{$newStatus}'
+    orderW.colorNumber = {$colorNumber} AND 
+    orderW.sapStatus != '{$newStatus}'
   ";
 
   $resultsEntregados = $wpdb->get_results($queryEntregados, ARRAY_A);
