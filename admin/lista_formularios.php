@@ -1,11 +1,50 @@
 <?php
-
-
 global $wpdb;
       $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
-$valueFilter = "orderW.colorNumber != 5";
-$value = "0";
+//QUERY PARA OBTENER TODAS LAS CIUDADES
+$queryCiudades = "SELECT wso.city as ciudad 
+FROM {$ordersInternTable} as wso
+GROUP BY
+wso.city
+ORDER BY
+wso.city ASC
+";
+$resultCiudades = $wpdb->get_results($queryCiudades, ARRAY_A);
+
+$filtroMes = "";
+$filtroCiudad = "";
+$selectFilters = "";
+if (isset($_POST["filtroMes"]) || isset($_POST["filtroCiudad"])) {
+  $filtroMes = $_POST["filtroMes"];
+  $filtroCiudad = $_POST["filtroCiudad"];
+  	$filtroMesQuery = "";
+	$filtroCiudadQuery = "";
+	$selectFiltersArray = [];
+  if ($filtroMes !== null && $filtroMes !== "") {
+	$filtroMesQuery = "
+	MONTH(orderW.orderDate) = {$filtroMes} 
+	";
+	array_push($selectFiltersArray, $filtroMesQuery);
+  }
+   
+  //Act
+  if ($filtroCiudad !== null && $filtroCiudad !== "") {
+	$filtroCiudadQuery = "
+	orderW.city = '{$filtroCiudad}' 
+	";
+	array_push($selectFiltersArray, $filtroCiudadQuery);
+  }
+  
+$selectFilters = implode(" AND ", $selectFiltersArray);
+if ($selectFilters !== "" && $selectFilters !== null) {
+	$selectFilters = $selectFilters . " AND ";
+}	
+
+}
+
+$valueFilter = "(orderW.colorNumber != 5 OR ISNULL(orderW.colorNumber))";
+$valueF = "0";
 $busquedaFilter = "";
 $busqueda = "";
 if (isset($_POST['busquedad'])){
@@ -23,21 +62,21 @@ if (isset($_POST['busquedad'])){
     }
 }
 if(isset($_POST["valuefilters"])){
-	$value = $_POST["valuefilters"];
-	if ($value != "0"){
-        if ($value == "1") {
-            $valueFilter = "orderW.colorNumber = {$value} OR
+	$valueF = $_POST["valuefilters"];
+	if ($valueF != "0"){
+        if ($valueF == "1") {
+            $valueFilter = "orderW.colorNumber = {$valueF} OR
                             orderW.colorNumber = 2";
         }else{
-            $valueFilter = "orderW.colorNumber = {$value}";
+            $valueFilter = "orderW.colorNumber = {$valueF}";
         }
              }else{
-				 $valueFilter = "orderW.colorNumber != 5";
+				 $valueFilter = "(orderW.colorNumber != 5 OR ISNULL(orderW.colorNumber))";
 			 }
 }
 $pagina = 1;
 if(isset($_POST["pagina"])){
-	$pagina = $_POST["pagina"];	
+	$pagina = intval($_POST["pagina"]);	
 }
 
 //LIMITE POR PAGINA
@@ -46,18 +85,22 @@ $por_pagina = floatval(5);
 $empieza = ($pagina-1)* $por_pagina;
 //HACEMOS SPLIT DEL VALUE FILTER PARA INCLUIRLO EN EL CONTADOR DE TODOS LOS PEDIDOS
 $replaceValueFilter = str_replace("orderW.", "", $valueFilter);
+$replaceSelectFilters = str_replace("orderW.", "", $selectFilters);
 //QUERY PARA CONTAR TODOS LOS PEDIDOS CON LOS FILTROS SELECCIONADOS
 //VARIABLE PARA DEFINIR FILTRO DE BUSQUEDA
+// {$replaceSelectFilters}  
 $conditionalSearch = $busquedaFilter != '' ? "AND " . $busquedaFilter : '';
 $query3 = "SELECT 
     mpOrder 
-    FROM $ordersInternTable 
-    WHERE {$replaceValueFilter} 
+    FROM {$ordersInternTable}
+    WHERE
+	{$replaceSelectFilters}
+	{$replaceValueFilter} 
     {$conditionalSearch}
     ";
 
 //QUERY PARA CANTIDAD DE TODOS LOS PEDIDOS SIN FILTROS
-$queryCantidadAllOrders = "SELECT mpOrder FROM $ordersInternTable WHERE colorNumber != 5";
+$queryCantidadAllOrders = "SELECT mpOrder FROM $ordersInternTable WHERE colorNumber != 5 OR ISNULL(colorNumber)";
 //EJECUCION DE QUERY PARA CANTIDAD
 $resultado = $wpdb->get_results($query3,ARRAY_A);
 $cantidadAll = $wpdb->get_results($queryCantidadAllOrders,ARRAY_A);
@@ -65,6 +108,7 @@ $cantidadAll = $wpdb->get_results($queryCantidadAllOrders,ARRAY_A);
 $cantidad = floatval(sizeof($resultado));
 //CALCULO DE LAS PAGINAS PARA PAGINACION EN BASE A CANTIDAD Y LIMITE
 $cantidadPaginas = ceil($cantidad / $por_pagina);
+
 
 //queries:
 
@@ -83,9 +127,10 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 	  phoneNumber,
 	  department,
       orderW.colorNumber
-      FROM 
+      FROM
       {$ordersInternTable} as orderW
 	  WHERE
+	  {$selectFilters}
 	  {$valueFilter}
       {$conditionalSearch}
       ORDER BY 
@@ -98,7 +143,6 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       ";
       //array para el foreach
       $mainResults = $wpdb->get_results($mainQuery, ARRAY_A);
-
 
 
       //QUERY PARA CARD DASHBOARD - FUNCION
@@ -318,6 +362,699 @@ font-weight: bolder;
     }
 }
 
+.loadingGlobal{
+     position: fixed;
+     top: 0;
+     left: 0;
+     background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;   
+}
+
+@-webkit-keyframes truck-skew {
+	 0%, 15%, 48%, 75%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: skewX(-15deg);
+		 -moz-transform: skewX(-15deg);
+		 -ms-transform: skewX(-15deg);
+		 -o-transform: skewX(-15deg);
+		 transform: skewX(-15deg);
+	}
+	 35%, 38% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: skewX(-13deg);
+		 -moz-transform: skewX(-13deg);
+		 -ms-transform: skewX(-13deg);
+		 -o-transform: skewX(-13deg);
+		 transform: skewX(-13deg);
+	}
+	 65% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: tskewX(-12deg);
+		 -moz-transform: tskewX(-12deg);
+		 -ms-transform: tskewX(-12deg);
+		 -o-transform: tskewX(-12deg);
+		 transform: tskewX(-12deg);
+	}
+	 85% {
+		 -webkit-transform: skewX(-14deg);
+		 -moz-transform: skewX(-14deg);
+		 -ms-transform: skewX(-14deg);
+		 -o-transform: skewX(-14deg);
+		 transform: skewX(-14deg);
+	}
+}
+ @keyframes truck-skew {
+	 0%, 15%, 48%, 75%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: skewX(-15deg);
+		 -moz-transform: skewX(-15deg);
+		 -ms-transform: skewX(-15deg);
+		 -o-transform: skewX(-15deg);
+		 transform: skewX(-15deg);
+	}
+	 35%, 38% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: skewX(-13deg);
+		 -moz-transform: skewX(-13deg);
+		 -ms-transform: skewX(-13deg);
+		 -o-transform: skewX(-13deg);
+		 transform: skewX(-13deg);
+	}
+	 65% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: tskewX(-12deg);
+		 -moz-transform: tskewX(-12deg);
+		 -ms-transform: tskewX(-12deg);
+		 -o-transform: tskewX(-12deg);
+		 transform: tskewX(-12deg);
+	}
+	 85% {
+		 -webkit-transform: skewX(-14deg);
+		 -moz-transform: skewX(-14deg);
+		 -ms-transform: skewX(-14deg);
+		 -o-transform: skewX(-14deg);
+		 transform: skewX(-14deg);
+	}
+}
+ @-webkit-keyframes wheel-front-bounce {
+	 0%, 20%, 53%, 80%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 40%, 43% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 70% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 90% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @keyframes wheel-front-bounce {
+	 0%, 20%, 53%, 80%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 40%, 43% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 70% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 90% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @-webkit-keyframes wheel-back-bounce {
+	 0%, 25%, 58%, 85%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 45%, 48% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 75% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 95% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @keyframes wheel-back-bounce {
+	 0%, 25%, 58%, 85%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 45%, 48% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 75% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 95% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @-webkit-keyframes body-bounce {
+	 0%, 15%, 48%, 75%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 35%, 38% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 65% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 85% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @keyframes body-bounce {
+	 0%, 15%, 48%, 75%, 100% {
+		 -webkit-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -moz-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -ms-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -o-transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+		 -webkit-transform: translate3d(0, 0, 0);
+		 -moz-transform: translate3d(0, 0, 0);
+		 -ms-transform: translate3d(0, 0, 0);
+		 -o-transform: translate3d(0, 0, 0);
+		 transform: translate3d(0, 0, 0);
+	}
+	 35%, 38% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -10px, 0);
+		 -moz-transform: translate3d(0, -10px, 0);
+		 -ms-transform: translate3d(0, -10px, 0);
+		 -o-transform: translate3d(0, -10px, 0);
+		 transform: translate3d(0, -10px, 0);
+	}
+	 65% {
+		 -webkit-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -moz-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -ms-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -o-transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 transition-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+		 -webkit-transform: translate3d(0, -5px, 0);
+		 -moz-transform: translate3d(0, -5px, 0);
+		 -ms-transform: translate3d(0, -5px, 0);
+		 -o-transform: translate3d(0, -5px, 0);
+		 transform: translate3d(0, -5px, 0);
+	}
+	 85% {
+		 -webkit-transform: translate3d(0, -1px, 0);
+		 -moz-transform: translate3d(0, -1px, 0);
+		 -ms-transform: translate3d(0, -1px, 0);
+		 -o-transform: translate3d(0, -1px, 0);
+		 transform: translate3d(0, -1px, 0);
+	}
+}
+ @-webkit-keyframes gas-first-flow {
+	 0% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+	}
+	 50% {
+		 opacity: 1;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(-20px, -3px, 0);
+		 -moz-transform: translate3d(-20px, -3px, 0);
+		 -ms-transform: translate3d(-20px, -3px, 0);
+		 -o-transform: translate3d(-20px, -3px, 0);
+		 transform: translate3d(-20px, -3px, 0);
+	}
+	 100% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(-40px, -6px, 0);
+		 -moz-transform: translate3d(-40px, -6px, 0);
+		 -ms-transform: translate3d(-40px, -6px, 0);
+		 -o-transform: translate3d(-40px, -6px, 0);
+		 transform: translate3d(-40px, -6px, 0);
+	}
+}
+ @keyframes gas-first-flow {
+	 0% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+	}
+	 50% {
+		 opacity: 1;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(-20px, -3px, 0);
+		 -moz-transform: translate3d(-20px, -3px, 0);
+		 -ms-transform: translate3d(-20px, -3px, 0);
+		 -o-transform: translate3d(-20px, -3px, 0);
+		 transform: translate3d(-20px, -3px, 0);
+	}
+	 100% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(-40px, -6px, 0);
+		 -moz-transform: translate3d(-40px, -6px, 0);
+		 -ms-transform: translate3d(-40px, -6px, 0);
+		 -o-transform: translate3d(-40px, -6px, 0);
+		 transform: translate3d(-40px, -6px, 0);
+	}
+}
+ @-webkit-keyframes gas-last-flow {
+	 0% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(30px, 0px, 0);
+		 -moz-transform: translate3d(30px, 0px, 0);
+		 -ms-transform: translate3d(30px, 0px, 0);
+		 -o-transform: translate3d(30px, 0px, 0);
+		 transform: translate3d(30px, 0px, 0);
+	}
+	 50% {
+		 opacity: 1;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(10px, -5px, 0);
+		 -moz-transform: translate3d(10px, -5px, 0);
+		 -ms-transform: translate3d(10px, -5px, 0);
+		 -o-transform: translate3d(10px, -5px, 0);
+		 transform: translate3d(10px, -5px, 0);
+	}
+	 100% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(0px, -10px, 0);
+		 -moz-transform: translate3d(0px, -10px, 0);
+		 -ms-transform: translate3d(0px, -10px, 0);
+		 -o-transform: translate3d(0px, -10px, 0);
+		 transform: translate3d(0px, -10px, 0);
+	}
+}
+ @keyframes gas-last-flow {
+	 0% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(30px, 0px, 0);
+		 -moz-transform: translate3d(30px, 0px, 0);
+		 -ms-transform: translate3d(30px, 0px, 0);
+		 -o-transform: translate3d(30px, 0px, 0);
+		 transform: translate3d(30px, 0px, 0);
+	}
+	 50% {
+		 opacity: 1;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(10px, -5px, 0);
+		 -moz-transform: translate3d(10px, -5px, 0);
+		 -ms-transform: translate3d(10px, -5px, 0);
+		 -o-transform: translate3d(10px, -5px, 0);
+		 transform: translate3d(10px, -5px, 0);
+	}
+	 100% {
+		 opacity: 0;
+		 -webkit-transition-timing-function: linear;
+		 -moz-transition-timing-function: linear;
+		 -ms-transition-timing-function: linear;
+		 -o-transition-timing-function: linear;
+		 transition-timing-function: linear;
+		 -webkit-transform: translate3d(0px, -10px, 0);
+		 -moz-transform: translate3d(0px, -10px, 0);
+		 -ms-transform: translate3d(0px, -10px, 0);
+		 -o-transform: translate3d(0px, -10px, 0);
+		 transform: translate3d(0px, -10px, 0);
+	}
+}
+ #truck {
+	 -webkit-animation-duration: 1s;
+	 -moz-animation-duration: 1s;
+	 -ms-animation-duration: 1s;
+	 -o-animation-duration: 1s;
+	 animation-duration: 1s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: truck-skew;
+	 -moz-animation-name: truck-skew;
+	 -ms-animation-name: truck-skew;
+	 -o-animation-name: truck-skew;
+	 animation-name: truck-skew;
+	 width: 100px;
+}
+ #truck #wheel--front {
+	 -webkit-animation-duration: 1s;
+	 -moz-animation-duration: 1s;
+	 -ms-animation-duration: 1s;
+	 -o-animation-duration: 1s;
+	 animation-duration: 1s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: wheel-front-bounce;
+	 -moz-animation-name: wheel-front-bounce;
+	 -ms-animation-name: wheel-front-bounce;
+	 -o-animation-name: wheel-front-bounce;
+	 animation-name: wheel-front-bounce;
+}
+ #truck #wheel--back {
+	 -webkit-animation-duration: 1s;
+	 -moz-animation-duration: 1s;
+	 -ms-animation-duration: 1s;
+	 -o-animation-duration: 1s;
+	 animation-duration: 1s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: wheel-back-bounce;
+	 -moz-animation-name: wheel-back-bounce;
+	 -ms-animation-name: wheel-back-bounce;
+	 -o-animation-name: wheel-back-bounce;
+	 animation-name: wheel-back-bounce;
+}
+ #truck #body {
+	 -webkit-animation-duration: 1s;
+	 -moz-animation-duration: 1s;
+	 -ms-animation-duration: 1s;
+	 -o-animation-duration: 1s;
+	 animation-duration: 1s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: body-bounce;
+	 -moz-animation-name: body-bounce;
+	 -ms-animation-name: body-bounce;
+	 -o-animation-name: body-bounce;
+	 animation-name: body-bounce;
+	 fill: #A66E66;
+}
+ #truck #gas--first {
+	 -webkit-animation-timing-function: linear;
+	 -moz-animation-timing-function: linear;
+	 -ms-animation-timing-function: linear;
+	 -o-animation-timing-function: linear;
+	 animation-timing-function: linear;
+	 -webkit-animation-duration: 0.7s;
+	 -moz-animation-duration: 0.7s;
+	 -ms-animation-duration: 0.7s;
+	 -o-animation-duration: 0.7s;
+	 animation-duration: 0.7s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: gas-first-flow;
+	 -moz-animation-name: gas-first-flow;
+	 -ms-animation-name: gas-first-flow;
+	 -o-animation-name: gas-first-flow;
+	 animation-name: gas-first-flow;
+	 fill: #dedede;
+}
+ #truck #gas--last {
+	 -webkit-animation-timing-function: linear;
+	 -moz-animation-timing-function: linear;
+	 -ms-animation-timing-function: linear;
+	 -o-animation-timing-function: linear;
+	 animation-timing-function: linear;
+	 -webkit-animation-duration: 0.8s;
+	 -moz-animation-duration: 0.8s;
+	 -ms-animation-duration: 0.8s;
+	 -o-animation-duration: 0.8s;
+	 animation-duration: 0.8s;
+	 -webkit-animation-iteration-count: infinite;
+	 -moz-animation-iteration-count: infinite;
+	 -ms-animation-iteration-count: infinite;
+	 -o-animation-iteration-count: infinite;
+	 animation-iteration-count: infinite;
+	 -webkit-animation-fill-mode: both;
+	 -moz-animation-fill-mode: both;
+	 -ms-animation-fill-mode: both;
+	 -o-animation-fill-mode: both;
+	 animation-fill-mode: both;
+	 -webkit-animation-name: gas-last-flow;
+	 -moz-animation-name: gas-last-flow;
+	 -ms-animation-name: gas-last-flow;
+	 -o-animation-name: gas-last-flow;
+	 animation-name: gas-last-flow;
+	 fill: #ececec;
+}
+ 
+
+#truck {
+
+	width: 200px;
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -61px;
+  margin-left: -100px;
+
+}
+
+.wp-core-ui{
+	margin: 0px 5px 0px 0px;
+}
+.filter{
+	padding: 0px 5px;
+}
+
   </style>
   
  
@@ -419,27 +1156,93 @@ font-weight: bolder;
     </div>
 
 </div>
-<div class="d-flex justify-content-between mb-3 mt-3">	   
-	<form  method="POST" class="form_search">
-	<input type="text" name="busquedad" id="busquedad" placeholder="Buscar" style="line-height: 1.5;">
-	
-	<button type="submit" name="buscar" class="button btn_search"><span class="dashicons dashicons2 dashicons-search"></span>Buscar</button>
-	<button type="submit" name="buscar" class="button btn_search reset"><span class="dashicons dashicons2 dashicons-image-rotate"></span>Resetear</button>
+<div class="d-flex justify-content-between mb-3 mt-3">
+    <form method="POST" class="form_search">
+      <input type="text" name="busquedad" id="busquedad" placeholder="Buscar" style="line-height: 1.5;">
+
+      <button type="submit" name="buscar" class="button btn_search"><span
+          class="dashicons dashicons2 dashicons-search"></span>Buscar</button>
+      <button type="submit" name="buscar" class="button btn_search reset"><span
+          class="dashicons dashicons2 dashicons-image-rotate"></span>Resetear</button>
+    </form>
+
+    <?php
+      if(sizeof($mainResults) > 0){
+        ?>
+          <div class="tablenav-pages"><span class="displaying-num"><?php echo $cantidad;?> elementos</span>
+      <span class="pagination-links">
+        <a data-pageNumber="<?php echo 1; ?>"
+          class="first-page button buttonPagination <?php $isDisabled = $pagina == 1 ? "disabled" : ""; echo $isDisabled;  ?>"><span
+            class="screen-reader-text">Primera página</span><span aria-hidden="true">«</span></a>
+        <a data-pageNumber="<?php echo $pagina == 1 ? 1: $pagina-1; ?>"
+          class="prev-page button buttonPagination <?php $isDisabled = $pagina == 1 ? "disabled" : "";  echo $isDisabled; ?>"><span
+            class="screen-reader-text">Página anterior</span><span aria-hidden="true">‹</span></a>
+
+        <span class="paging-input"><label for="current-page-selector" class="screen-reader-text">Página
+            actual</label><input class="current-page" id="current-page-selector" type="text" name="paged"
+            value="<?php echo $pagina; ?>" size="1" aria-describedby="table-paging"><span class="tablenav-paging-text">
+            de <span class="total-pages"><?php echo $cantidadPaginas; ?></span></span></span>
+        <a data-pageNumber="<?php echo $pagina+1; ?>"
+          class="next-page button buttonPagination <?php $isDisabled = $pagina == $cantidadPaginas ? "disabled" : ""; echo $isDisabled; ?>"><span
+            class="screen-reader-text">Página siguiente</span><span aria-hidden="true">›</span></a>
+        <a data-pageNumber="<?php echo $cantidadPaginas; ?>"
+          class="last-page button buttonPagination <?php $isDisabled = $pagina == $cantidadPaginas ? "disabled" : "";  echo $isDisabled;  ?>"><span
+            class="screen-reader-text">Última página</span><span aria-hidden="true">»</span></a></span>
+    </div>
+        <?php
+      }
+      ?>
+  
+ 
+	</div>
+<form method="POST" >
+	<div class="d-flex mb-3 mt-3">
+
+
+
+
+	  <select id="my-select" class="wp-core-ui" name="filtroMes">
+	  <option value="" >Elige un mes</option>
+	  <option value="1" >Enero</option>
+	  <option value="2" >Febrero</option>
+	  <option value="3" >Marzo</option>
+	  <option value="4" >Abril</option>
+	  <option value="5" >Mayo</option>
+	  <option value="6" >Junio</option>
+	  <option value="7" >Junio</option>
+	  <option value="8" >Agosto</option>
+	  <option value="9" >Septiembre</option>
+	  <option value="10" >Octubre</option>
+	  <option value="11" >Noviembre</option>
+	  <option value="12" >Diciembre</option>
+	  </select>
+	  <select id="my-select" class="wp-core-ui" name="filtroCiudad">
+	  <option value="" >Elige una ciudad</option>
+<?php
+foreach ($resultCiudades as $key => $value) {
+	?>
+	 <option value="<?php echo $value["ciudad"]; ?>" ><?php echo $value["ciudad"]; ?></option>
+	<?php
+}
+
+?>
+	  </select>
+	  <button type="submit" name="filtrar" class="button filter "><span
+          class="dashicons dashicons2 dashicons-filter"></span>Filtrar</button>
+
+
+
+	</div>
+
 </form>
 
-<div class="tablenav-pages"><span class="displaying-num"><?php echo $cantidad;?> elementos</span>
-<span class="pagination-links">
-<a  data-pageNumber="<?php echo 1; ?>"  class="first-page button buttonPagination <?php $isDisabled = $pagina == 1 ? "disabled" : ""; echo $isDisabled;  ?>"><span class="screen-reader-text">Primera página</span><span aria-hidden="true">«</span></a>
-<a data-pageNumber="<?php echo $pagina == 1 ? 1: $pagina-1; ?>" class="prev-page button buttonPagination <?php $isDisabled = $pagina == 1 ? "disabled" : "";  echo $isDisabled; ?>"><span class="screen-reader-text">Página anterior</span><span aria-hidden="true">‹</span></a>
-	
-<span class="paging-input"><label for="current-page-selector" class="screen-reader-text">Página actual</label><input class="current-page" id="current-page-selector" type="text" name="paged" value="<?php echo $pagina; ?>" size="1" aria-describedby="table-paging"><span class="tablenav-paging-text"> de <span class="total-pages"><?php echo $cantidadPaginas; ?></span></span></span>
-<a data-pageNumber="<?php echo $pagina+1; ?>" class="next-page button buttonPagination <?php $isDisabled = $pagina == $cantidadPaginas ? "disabled" : ""; echo $isDisabled; ?>"><span class="screen-reader-text">Página siguiente</span><span aria-hidden="true">›</span></a>
-<a data-pageNumber="<?php echo $cantidadPaginas; ?>" class="last-page button buttonPagination <?php $isDisabled = $pagina == $cantidadPaginas ? "disabled" : "";  echo $isDisabled;  ?>"><span class="screen-reader-text">Última página</span><span aria-hidden="true">»</span></a></span>
-</div>
-</div>
+
+
 <form id="formPagination" method="POST">
     <input type="hidden" name="pagina">
-    <input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
+	<input type="hidden" value="<?php echo $filtroMes; ?>" name="filtroMes">
+	<input type="hidden" value="<?php echo $filtroCiudad; ?>" name="filtroCiudad">
+    <input type="hidden" value="<?php echo $valueF; ?>" name="valuefilters">
     <input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
 </form>
 
@@ -459,9 +1262,16 @@ font-weight: bolder;
                 <tbody id="the-list">
 
 		   <?php
-			
-				
-				  foreach ($mainResults as $key => $value){
+			if(sizeof($mainResults) == 0){
+
+                echo "<tr>
+                
+                <td>No hay resultado</td>
+                
+                </tr>";
+        
+               }else{
+                foreach ($mainResults as $key => $value){
                     $nombre = $value['orderNumberName'];
                     $telefono = $value['phoneNumber'];
                     $fpedido = $value['orderDate'];
@@ -508,6 +1318,7 @@ font-weight: bolder;
 				    <td><div class='semaforo' data-colorValue='$status' style='background-image: $fondo;' ></td>
                     </tr>";
                 }
+               }
             ?>
                 </tbody>	
         </table>
@@ -569,14 +1380,45 @@ font-weight: bolder;
   </div>
 </div>
 
+<div class="loadingGlobal" style="display: none; ">
+     <svg version="1.1" id="truck" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 370 225" enable-background="new 0 0 370 225" xml:space="preserve"  style="z-index:10;">
+<path id="wheel--front" d="M300,170c13.8,0,25,11.2,25,25s-11.2,25-25,25s-25-11.2-25-25S286.2,170,300,170z M285,195
+	c0,8.3,6.7,15,15,15s15-6.7,15-15s-6.7-15-15-15S285,186.7,285,195z"/>
+<path id="wheel--back" d="M170,170c13.8,0,25,11.2,25,25s-11.2,25-25,25c-13.8,0-25-11.2-25-25S156.2,170,170,170z M155,195
+	c0,8.3,6.7,15,15,15s15-6.7,15-15s-6.7-15-15-15S155,186.7,155,195z"/>
+<path id="body" d="M345,50h-45V40H100v155h40c0-16.6,13.4-30,30-30s30,13.4,30,30h70c0-16.6,13.4-30,30-30s30,13.4,30,30h35v-75
+	L345,50z M346.2,115h-45V65h35l10,40V115z"/>
+<path id="gas--last" d="M39.7,168.2c-0.6,2.5-3.1,4-5.6,3.4c-0.5-0.1-1-0.4-1.5-0.6c-2.5,2.4-6.1,3.6-9.7,2.7
+	c-3.4-0.8-5.9-3.2-7.2-6.1c-0.8,1-2.2,1.5-3.5,1.2c-1.5-0.4-2.5-1.6-2.6-3.1c-2.5-1.1-4-3.9-3.3-6.6c0.7-3.1,3.9-5,7-4.3
+	c0,0,0.1,0,0.1,0c-0.4-1.5-0.5-3.1-0.1-4.8c1.2-5,6.2-8,11.1-6.8c3.8,0.9,6.4,4,7,7.6c1.3-0.4,2.8-0.5,4.3-0.2c4.3,1,7,5.4,6,9.7
+	c-0.4,1.7-1.3,3.1-2.6,4.2C39.7,165.6,40,166.9,39.7,168.2z"/>
+<path id="gas--first" d="M90.6,175.2c1.4-2,2.1-4.7,1.4-7.3c-1.1-4.8-6-7.8-10.8-6.7c-1,0.2-2,0.7-2.8,1.2c0-0.2-0.1-0.3-0.1-0.5
+	c-1.1-4.8-6-7.8-10.8-6.7c-3.3,0.8-5.7,3.3-6.6,6.3c-1.8-0.6-3.8-0.8-5.9-0.3c-5.6,1.3-9.1,7-7.8,12.6c1,4.1,4.2,7,8.1,7.8
+	c1.5,5.4,7,8.6,12.5,7.3c2.2-0.5,4-1.7,5.4-3.2c1.9,0.8,4.1,1,6.3,0.5c1.7-0.4,3.2-1.2,4.4-2.2c1.3,2.2,3.9,3.3,6.5,2.7
+	c3.2-0.8,5.2-4,4.5-7.2C94.3,177.4,92.7,175.8,90.6,175.2z"/>
+</svg>
+</div>
+
+
 <script>
+const forms = document.querySelectorAll("form");
+const loadingGlobal = document.querySelector(".loadingGlobal")
+forms.forEach(form => {
+     form.addEventListener("submit", () => {
+        loadingGlobal.setAttribute("style", "display: flex; z-index:900;");
+
+  })
+})
 
 //FUNCIONALIDAD PARA IR A TAB ENTREGADOS AL DAR CLICK EN CARD
 const cards = document.querySelectorAll("div[data-page]");
 cards.forEach(card => {
 	card.addEventListener("click", () => {
+		loadingGlobal.setAttribute("style", "display: flex; z-index:900;");
 		let page = card.getAttribute("data-page");
 		window.location.href = page;
+		
 	})
 })
 
@@ -588,6 +1430,7 @@ cardsFilter.forEach(card => {
         let filterValue = card.getAttribute("data-filterValue");
         formFilterOrders.firstElementChild.value = filterValue; 
 		formFilterOrders.submit();
+		loadingGlobal.setAttribute("style", "display: flex; z-index:900;");
 	})
 })
 
@@ -610,6 +1453,7 @@ btnsPagination.forEach(btn => {
 		let btnPage = btn.getAttribute("data-pageNumber");
 		formPagination.children[0].value = btnPage;
 		formPagination.submit();
+		loadingGlobal.setAttribute("style", "display: flex; z-index:900;");
 	})
 })
 
@@ -746,3 +1590,4 @@ window.addEventListener("DOMContentLoaded", () => {
 })
 
 </script>
+
