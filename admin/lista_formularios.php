@@ -27,7 +27,8 @@ if (isset($_POST["filtroMes"]) || isset($_POST["filtroCiudad"])) {
 	";
 	array_push($selectFiltersArray, $filtroMesQuery);
   }
-  
+   
+  //Act
   if ($filtroCiudad !== null && $filtroCiudad !== "") {
 	$filtroCiudadQuery = "
 	orderW.city = '{$filtroCiudad}' 
