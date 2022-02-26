@@ -109,12 +109,6 @@ $cantidad = floatval(sizeof($resultado));
 //CALCULO DE LAS PAGINAS PARA PAGINACION EN BASE A CANTIDAD Y LIMITE
 $cantidadPaginas = ceil($cantidad / $por_pagina);
 
-var_dump($replaceSelectFilters);
-var_dump($pagina);
-var_dump($cantidad);
-var_dump($cantidadPaginas);
-var_dump($_POST["filtroMes"]);
-var_dump($_POST["filtroCiudad"]);
 
 //queries:
 
