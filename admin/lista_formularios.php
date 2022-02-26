@@ -6,32 +6,20 @@ global $wpdb;
 $queryCiudades = "SELECT wso.city as ciudad 
 FROM {$ordersInternTable} as wso
 GROUP BY
-wso.city";
+wso.city
+ORDER BY
+wso.city ASC
+";
 $resultCiudades = $wpdb->get_results($queryCiudades, ARRAY_A);
 
-//QUERY PARA OBTENER TODOS LOS CLIENTES:
-$orderCustomersTable = "{$wpdb->prefix}wc_customer_lookup";
-$queryCustomers = "SELECT CONCAT(wwcl.first_name, ' ', wwcl.last_name) as name,
-wwcl.customer_id AS id
-FROM {$orderCustomersTable} as wwcl
-WHERE
-wwcl.first_name != ''
-ORDER BY
-wwcl.first_name ASC
-"; 
-$resultCustomers = $wpdb->get_results($queryCustomers, ARRAY_A);
 $filtroMes = "";
 $filtroCiudad = "";
-$filtroCliente = "";
 $selectFilters = "";
-$tablasClienteQuery  = "";
-if (isset($_POST["filtrar"])) {
+if (isset($_POST["filtroMes"]) || isset($_POST["filtroCiudad"])) {
   $filtroMes = $_POST["filtroMes"];
   $filtroCiudad = $_POST["filtroCiudad"];
-  $filtroCliente = $_POST["filtroCliente"];
   	$filtroMesQuery = "";
 	$filtroCiudadQuery = "";
-	$filtroClienteQuery = "";
 	$selectFiltersArray = [];
   if ($filtroMes !== null && $filtroMes !== "") {
 	$filtroMesQuery = "
@@ -47,25 +35,15 @@ if (isset($_POST["filtrar"])) {
 	array_push($selectFiltersArray, $filtroCiudadQuery);
   }
   
-  if ($filtroCliente !== null && $filtroCliente !== "") {
-	$filtroClienteQuery = "
-	wwcl.customer_id = {$filtroCliente}
-	";
-	$tablasClienteQuery = "
-	INNER JOIN wpme_wc_order_stats wwos 
-  ON wwos.order_id = orderW.mpOrder
-  INNER JOIN wpme_wc_customer_lookup ";
-  array_push($selectFiltersArray, $filtroClienteQuery);
-}
-$selectFilters = implode(" AND ", $selectFiltersArray) .' AND ';	
+$selectFilters = implode(" AND ", $selectFiltersArray);
+if ($selectFilters !== "" && $selectFilters !== null) {
+	$selectFilters = $selectFilters . " AND ";
+}	
 
 }
-var_dump($selectFilters);
-var_dump($tablasClienteQuery);
 
-
-$valueFilter = "orderW.colorNumber != 5";
-$value = "0";
+$valueFilter = "(orderW.colorNumber != 5 OR ISNULL(orderW.colorNumber))";
+$valueF = "0";
 $busquedaFilter = "";
 $busqueda = "";
 if (isset($_POST['busquedad'])){
@@ -83,24 +61,23 @@ if (isset($_POST['busquedad'])){
     }
 }
 if(isset($_POST["valuefilters"])){
-	$value = $_POST["valuefilters"];
-	if ($value != "0"){
-        if ($value == "1") {
-            $valueFilter = "orderW.colorNumber = {$value} OR
+	$valueF = $_POST["valuefilters"];
+	if ($valueF != "0"){
+        if ($valueF == "1") {
+            $valueFilter = "orderW.colorNumber = {$valueF} OR
                             orderW.colorNumber = 2";
         }else{
-            $valueFilter = "orderW.colorNumber = {$value}";
+            $valueFilter = "orderW.colorNumber = {$valueF}";
         }
              }else{
-				 $valueFilter = "orderW.colorNumber != 5";
+				 $valueFilter = "(orderW.colorNumber != 5 OR ISNULL(orderW.colorNumber))";
 			 }
 }
 $pagina = 1;
 if(isset($_POST["pagina"])){
-	$pagina = $_POST["pagina"];	
+	$pagina = intval($_POST["pagina"]);	
 }
-var_dump($valueFilter);
-var_dump($busquedaFilter);
+
 //LIMITE POR PAGINA
 $por_pagina = floatval(5);
 //CALCULO PARA EL OFFSET DEL QUERY
@@ -110,19 +87,19 @@ $replaceValueFilter = str_replace("orderW.", "", $valueFilter);
 $replaceSelectFilters = str_replace("orderW.", "", $selectFilters);
 //QUERY PARA CONTAR TODOS LOS PEDIDOS CON LOS FILTROS SELECCIONADOS
 //VARIABLE PARA DEFINIR FILTRO DE BUSQUEDA
+// {$replaceSelectFilters}  
 $conditionalSearch = $busquedaFilter != '' ? "AND " . $busquedaFilter : '';
 $query3 = "SELECT 
     mpOrder 
     FROM {$ordersInternTable}
-	{$tablasClienteQuery}
     WHERE
-	{$replaceSelectFilters}  
+	{$replaceSelectFilters}
 	{$replaceValueFilter} 
     {$conditionalSearch}
     ";
 
 //QUERY PARA CANTIDAD DE TODOS LOS PEDIDOS SIN FILTROS
-$queryCantidadAllOrders = "SELECT mpOrder FROM $ordersInternTable WHERE colorNumber != 5";
+$queryCantidadAllOrders = "SELECT mpOrder FROM $ordersInternTable WHERE colorNumber != 5 OR ISNULL(colorNumber)";
 //EJECUCION DE QUERY PARA CANTIDAD
 $resultado = $wpdb->get_results($query3,ARRAY_A);
 $cantidadAll = $wpdb->get_results($queryCantidadAllOrders,ARRAY_A);
@@ -130,6 +107,13 @@ $cantidadAll = $wpdb->get_results($queryCantidadAllOrders,ARRAY_A);
 $cantidad = floatval(sizeof($resultado));
 //CALCULO DE LAS PAGINAS PARA PAGINACION EN BASE A CANTIDAD Y LIMITE
 $cantidadPaginas = ceil($cantidad / $por_pagina);
+
+var_dump($replaceSelectFilters);
+var_dump($pagina);
+var_dump($cantidad);
+var_dump($cantidadPaginas);
+var_dump($_POST["filtroMes"]);
+var_dump($_POST["filtroCiudad"]);
 
 //queries:
 
@@ -150,9 +134,8 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       orderW.colorNumber
       FROM
       {$ordersInternTable} as orderW
-	  {$tablasClienteQuery}
 	  WHERE
-	  {$selectFilters}  
+	  {$selectFilters}
 	  {$valueFilter}
       {$conditionalSearch}
       ORDER BY 
@@ -165,7 +148,6 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       ";
       //array para el foreach
       $mainResults = $wpdb->get_results($mainQuery, ARRAY_A);
-
 
 
       //QUERY PARA CARD DASHBOARD - FUNCION
@@ -1250,17 +1232,6 @@ foreach ($resultCiudades as $key => $value) {
 
 ?>
 	  </select>
-	  <select id="my-select" class="wp-core-ui" name="filtroCliente">
-	  <option value="" >Elige un cliente</option>
-	  <?php
-foreach ($resultCustomers as $key => $value) {
-	?>
-	 <option value="<?php echo $value["id"]; ?>" ><?php echo $value["name"]; ?></option>
-	<?php
-}
-
-?>
-	  </select>
 	  <button type="submit" name="filtrar" class="button filter "><span
           class="dashicons dashicons2 dashicons-filter"></span>Filtrar</button>
 
@@ -1273,12 +1244,11 @@ foreach ($resultCustomers as $key => $value) {
 
 
 <form id="formPagination" method="POST">
-<input type="hidden" name="filtroMes" value="<?php echo $filtroMes; ?>">
-<input type="hidden" name="filtroCiudad" value="<?php echo $filtroCiudad; ?>">
-<input type="hidden" name="filtroCliente" value="<?php echo $filtroCliente; ?>">
-<input type="hidden" name="pagina">
-<input type="hidden" value="<?php echo $value; ?>" name="valuefilters">
-<input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
+    <input type="hidden" name="pagina">
+	<input type="hidden" value="<?php echo $filtroMes; ?>" name="filtroMes">
+	<input type="hidden" value="<?php echo $filtroCiudad; ?>" name="filtroCiudad">
+    <input type="hidden" value="<?php echo $valueF; ?>" name="valuefilters">
+    <input type="hidden" value="<?php echo $busqueda; ?>" name="busquedad">
 </form>
 
 

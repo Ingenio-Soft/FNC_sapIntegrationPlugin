@@ -527,7 +527,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
 
         wp_mail( $to, $subject, $message);
         //NOTIFICACION DE DESPACHADO A CLIENTE
-
+        $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
         $orderItemsQuery = "SELECT 
           CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
           FROM
