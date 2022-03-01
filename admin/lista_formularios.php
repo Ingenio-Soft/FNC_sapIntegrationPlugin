@@ -58,6 +58,7 @@ if (isset($_POST['busquedad'])){
             orderDate LIKE '%{$busqueda}%' OR 
             sapOrderDateShipped LIKE '%{$busqueda}%' OR 
             totalPrice LIKE '%{$busqueda}%' OR 
+			docNumber LIKE '%{$busqueda}%' OR 
             colorNumber LIKE '%{$busqueda}%')";
     }
 }
@@ -1282,7 +1283,9 @@ foreach ($resultCiudades as $key => $value) {
 					$correo = $value['email'];
 					$departamento = $value['department'];
 					$exxeStatus = $value['exxeStatus'];
-					
+					$docnumber = $value['docNumber']
+
+
 					$fondo = "";
 					if($status == 1){
 					$fondo = "linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);";
@@ -1309,6 +1312,7 @@ foreach ($resultCiudades as $key => $value) {
                     <td>$precio</td>
 					<td style='display: none;' class='orderContent' data-campo='direccion'>$direccion</td>
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
+					<td style='display: none;' class='orderContent' data-campo='correo'>$docnumber</td>
 					<td style='display: none;' class='orderContent' data-campo='correo'>$correo</td>
 				    <td style='display: none;' class='orderContent' data-campo='departamento'>$departamento</td> 
 				    <td style='display: none;' class='orderContent' data-campo='exxeStatus'>$exxeStatus</td> 
