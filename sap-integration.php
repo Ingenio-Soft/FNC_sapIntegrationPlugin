@@ -555,7 +555,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         wp_mail( $to, $subject, $message);
         //NOTIFICACION DE DESPACHADO A CLIENTE
 
-        $order = wc_get_order( $id ); 
+        $order = wc_get_order( $orderById[0]["mpOrder"] ); 
         $order_data = $order->get_data();  
 
         $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
@@ -573,8 +573,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           ON or_prod.order_item_id = orderPL.order_item_id
           AND orderPL.meta_key = 'Vendido por'
           WHERE 
-          or_prod.order_id = {$id} AND
-          prod_extra_info.order_id = {$id}
+          or_prod.order_id = {$orderById[0]["mpOrder"]} AND
+          prod_extra_info.order_id = {$orderById[0]["mpOrder"]}
           ";
 
           $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
@@ -587,18 +587,15 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           foreach ($orderItemsResult as $key => $value) {
             $orderItemsHTML .= "
           <tr>
-          <td
-              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;word-wrap:break-word'>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;word-wrap:break-word'>
               {$value['NombreProducto']}
           </td>
-          <td
-              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif'>
               {$value['CantidadDelProducto']}</td>
-          <td
-              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif'>
               <span><span>$</span>{$value['PrecioDelProducto']}</span>
           </td>
-      </tr>
+          </tr>
           ";
           }
 
@@ -606,8 +603,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           
           
 
-        $toClient = $orderById[0]["email"];
-        $subjectClient = "Tu pedido #$orderById[0]['mpOrder'] ha sido enviado";
+         $toClient = $orderById[0]["email"];
+        $subjectClient = "Tu pedido #{$orderById[0]['mpOrder']} ha sido enviado";
         $headers = array( 'Content-Type: text/html; charset=UTF-8' );
         $messageClient = "
         <div marginwidth='0' marginheight='0' style='padding:0'>
@@ -704,7 +701,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                                                                                                 Subtotal:</th>
                                                                                             <td
                                                                                                 style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left;border-top-width:4px'>
-                                                                                                <span><span>$</span>\${$order->get_subtotal()}</span>
+                                                                                                <span><span>$</span>{$order->get_subtotal()}</span>
                                                                                             </td>
                                                                                         </tr>
                                                                                         <tr>
@@ -714,7 +711,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                                                                                                 Envío:</th>
                                                                                             <td
                                                                                                 style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
-                                                                                                <span><span>$</span>\${$order_data['shipping_total']}</span>&nbsp;<small>vía
+                                                                                                <span><span>$</span>{$order_data['shipping_total']}</span>&nbsp;<small>vía
                                                                                                 {$orderById[0]["transportGuide"]}</small>
                                                                                             </td>
                                                                                         </tr>
@@ -735,7 +732,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                                                                                                 Total:</th>
                                                                                             <td
                                                                                                 style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
-                                                                                                <span><span>$</span>\${$order->get_total()}</span>
+                                                                                                <span><span>$</span>{$order->get_total()}</span>
                                                                                             </td>
                                                                                         </tr>
                                                                                     </tfoot>
