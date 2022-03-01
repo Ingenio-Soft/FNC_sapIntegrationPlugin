@@ -1276,8 +1276,12 @@ function exxeCron(){
   FROM
   {$ordersInternTable} as orderS
   WHERE
-  orderS.sapStatus = 'despachado' AND
-  (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
+  orderS.sapStatus = 'Despachado' AND
+  (
+    ISNULL(orderS.colorNumber) OR 
+    orderS.colorNumber = 4 OR 
+    orderS.colorNumber = 3 OR 
+    orderS.colorNumber = 1 )
   ";
 
   $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
@@ -1310,6 +1314,11 @@ function exxeCron(){
                 "exxeStatusUpdatedAt" => $statusExxeDate,
               ), 
               array("id" => $order_id));
+              if ($colorNumber == 1) {
+                $wpdb->update($ordersInternTable, array("exxeError" => 1), array("id" => $order_id));
+              }else{
+                $wpdb->update($ordersInternTable, array("exxeError" => 0), array("id" => $order_id));
+              }
           }
 
       }
@@ -1317,20 +1326,24 @@ function exxeCron(){
   }
 
   //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
-  sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
+  sendEmailByOrderStatus(1, "orderW.novedadExxeNotified");
+  //NOTIFICAMOS PEDIDOS QUE PASARON A NOVEDAD RETRASO
+  sendEmailByOrderStatus(1, "orderW.novedadDelayExxeNotified", true);
   //NOTIFICAMOS A CLIENTE PEDIDOS QUE HAYAN SIDO ENTREGADOS
-  sendEmailByOrderStatus(5, "ENTREGADO NOTIFICADO");
+  sendEmailByOrderStatus(5, "orderW.sapErrorNotified");
+
+
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-  updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
-  // updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+  updateColorNumberIfTimePassed(4, 3, "colorNumber", 30, "SECOND");
+  // updateColorNumberIfTimePassed(4, 3, "colorNumber", 7, "DAY");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-  updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
-  // updateColorNumberIfTimePassed(1, 2, 15, "DAY");
+  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND");
+  // updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 25, "DAY");
 };
 
-function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
+function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$timeValue, $timeParamDiff){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
@@ -1342,96 +1355,71 @@ function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $ti
   $updateOrders = "UPDATE
     {$ordersInternTable}
     SET
-    colorNumber = {$newColor}
+    {$valueField} = {$newColor}
     WHERE
     colorNumber = {$currentColor} AND 
     TIMESTAMPDIFF({$timeParamDiff}, exxeStatusUpdatedAt, {$currentDate}) > {$timeValue} 
     ";
 
     $wpdb->query($updateOrders);
-
-    //ESTABLECEMOS MENSAJES DE CORREO CUANDO CAMBIA A ESTADO NARANJA, MOSTRANDO INFO BASICA DE CADA PEDIDO ACTUALIZADO
-    if ($newColor == 2) {
-      sendEmailByOrderStatus($newColor, "NOTIFICADO"); 
-    }
 }
 
-function sendEmailByOrderStatus($colorNumber, $newStatus){
+function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = false){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
   if ($colorNumber == 5) {
     
   $queryEntregados = "SELECT 
-  orderW.mpOrder, orderW.transportGuide,
-  orderW.sapStatus as orderStatus, 
-  orderW.customerFullName,
-  CONCAT('$', orderW.totalPrice) as totalPrice,
-  orderW.phoneNumber,
-  orderW.orderAddress,
-  orderW.orderDate,
-  orderW.email, orderW.city,
-  orderW.department
+  orderW.mpOrder as orderId
   FROM {$ordersInternTable} as orderW
     WHERE
     orderW.colorNumber = {$colorNumber} AND 
-    orderW.sapStatus != '{$newStatus}'
+    {$statusField} != 1
   ";
 
   $resultsEntregados = $wpdb->get_results($queryEntregados, ARRAY_A);
   if (sizeof($resultsEntregados) > 0) {
     foreach ($resultsEntregados as $key => $value) {
-      $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
-      $orderItemsQuery = "SELECT 
-          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
-          FROM
-          {$wpdb->prefix}wc_order_product_lookup as or_prod
-          INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-          ON or_prod.product_id = prod_info.product_id
-          INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
-          ON or_prod.order_item_id = prod_extra_info.order_item_id
-          INNER JOIN {$orderProductsMetaTableName} as orderPL
-          ON or_prod.order_item_id = orderPL.order_item_id
-          AND orderPL.meta_key = 'Vendido por'
-          WHERE 
-          or_prod.order_id = {$value["mpOrder"]} AND
-          prod_extra_info.order_id = {$value["mpOrder"]}
-          ";
-          $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
-          $orderDateFormatted = explode(" ", $value["orderDate"]);
-          $productsInfoArray = array_map(function($product){
-            return $product["productInfo"];
-          }, $orderItemsResult);
-          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+      $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
+      $updateOrderStatus = $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-completed"), array("order_id" => $value["orderId"]));
 
-          $toClient = $value["email"];
-          $subjectClient = "Su Pedido #{$value["mpOrder"]} ha sido entregado";
-          $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$value["customerFullName"]}\n\nSolo para que lo sepas -- hemos entregado tu pedido a la dirección de envío otorgada:\n\n[PEDIDO #{$value["mpOrder"]}] ({$orderDateFormatted[0]})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$value["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$value["customerFullName"]}\n{$value["orderAddress"]}\n{$value["city"]}\n{$value["department"]}\n{$value["phoneNumber"]}\n{$value["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
-  
-          $wasEmailSent = wp_mail( $toClient, $subjectClient, $messageClient);
-          if ($wasEmailSent) {
-            //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
-            $ordersDeliveredNotified = "UPDATE
-            {$ordersInternTable}
-            SET 
-            sapStatus = '{$newStatus}'
-            WHERE
-            colorNumber = {$colorNumber}
-            ";
-            $wpdb->query($ordersDeliveredNotified);
-          }
+      $wcEmail = WC()->mailer();
+      $emailer = $wcEmail->emails['WC_Email_Customer_Completed_Order']; //Enviar una nota al usuario
+      $emailer->subject = "Tu pedido en Compro Café de Colombia ya ha sido completado"; //Sujeto del correo
+      $emailer->heading = "Gracias por tu compra"; //Título del contenido del correo
+      $emailer->trigger($value["orderId"]);
+
+      //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+      if ($updateOrderStatus != false) {
+        $ordersDeliveredNotified = "UPDATE
+        {$ordersInternTable}
+        SET 
+        {$statusField} = 1
+        WHERE
+        colorNumber = {$colorNumber}
+        ";
+        $wpdb->query($ordersDeliveredNotified);    
+      }
+       
     }
   }
   }
   else{
+    $isFifteenDaysWhere = "";
+    if ($isFifteenDays) {
+      $isFifteenDaysWhere = "AND exxeNovedadFifteenDays = 1";
+    }
     //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
     $ordersDelayed = "SELECT
     CONCAT('Pedido #', mpOrder, ' - guía: ', transportGuide, ' - ', customerFullName) as orderInfo
     FROM {$ordersInternTable}
     WHERE
-    colorNumber = {$colorNumber} AND 
-    sapStatus != '{$newStatus}'
+    colorNumber = {$colorNumber} AND
+    exxeError = 1 AND 
+    {$statusField} != 1
+    {$isFifteenDaysWhere}
     ";
     $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
 
@@ -1447,7 +1435,7 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
 
       // $to = "comprocafedecolombia@cafedecolombia.com";
       $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-      if ($colorNumber == 1) {
+      if (!$isFifteenDays) {
         $subject = "Pedidos con novedad";
         $messageInfo = "";
         $predicateInfo = "Por favor, recuerde validar con Exxe Logística el estado del pedido.";
@@ -1465,9 +1453,10 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
         $ordersDelayedNotified = "UPDATE
         {$ordersInternTable}
         SET 
-        sapStatus = '{$newStatus}'
+        {$statusField} = 1
         WHERE
-        colorNumber = {$colorNumber}
+        colorNumber = {$colorNumber} AND
+        exxeError = 1
         ";
         $wpdb->query($ordersDelayedNotified);
       }
@@ -1635,12 +1624,9 @@ function getExxeStatusByTransportGuide($transportGuide){
   $guideStatusDate = $lastStatusInfo->FechaEstado;
 
   return [$guideStatus, $guideStatusDate];
-
 }
 
 //anadimos custom hook con funcion de cron y lo programamos
-
-
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
@@ -1657,12 +1643,6 @@ function function_woocommerce_email_header( $order, $sent_to_admin, $plain_text,
         echo '<div class="woocommerce-info">woocommerce_email_header</div>';
     }
 } */
-
-
-
-
-
-
 
 /*----------------------------------------------------------------------*/
 
