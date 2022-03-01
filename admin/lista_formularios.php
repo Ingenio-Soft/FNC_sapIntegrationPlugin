@@ -1490,7 +1490,7 @@ window.addEventListener("DOMContentLoaded", () => {
             //extraemos color de semaforo
             let semaforoColor = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("style");
             let semaforoNumber = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("data-colorValue");
-            if (semaforoNumber == "2") {
+            if (semaforoNumber == "1") {
                 modalFooter.setAttribute("style", "display: block;");
             }else{
                 modalFooter.setAttribute("style", "display: none;");
