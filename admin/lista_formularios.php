@@ -175,8 +175,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       $delayedOrders = sizeof(getCardNumber(3));
       //Con novedades  :
       $novedadOrders = sizeof(getCardNumber(1));
-      //Mas de 15 dias con novedad  :
-      $novedadDelayedOrders = sizeof(getCardNumber(2));
+    
       //Entregados  :
       $deliveredOrders = sizeof(getCardNumber(5));
 	   //total
@@ -1287,8 +1286,6 @@ foreach ($resultCiudades as $key => $value) {
 					$fondo = "";
 					if($status == 1){
 					$fondo = "linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);";
-				    }if($status == 2){
-					$fondo = "linear-gradient(to left top, #f76e11, #f97b1f, #fb882c, #fd9438, #ff9f45);";
 				    }if($status == 3){
 					$fondo = "linear-gradient(to left top, #d69e2e, #dfae39, #e7bf44, #efcf51, #f6e05e);";
 				    }
