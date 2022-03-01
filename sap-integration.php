@@ -529,11 +529,15 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
 
         wp_mail( $to, $subject, $message);
         //NOTIFICACION DE DESPACHADO A CLIENTE
+
+        $order = wc_get_order( $id ); 
+        $order_data = $order->get_data();  
+
         $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
         $orderItemsQuery = "SELECT 
-          prod_extra_info.order_item_name, 
-          or_prod.product_qty, 
-          or_prod.product_net_revenue
+          prod_extra_info.order_item_name as NombreProducto, 
+          or_prod.product_qty as CantidadDelProducto, 
+          or_prod.product_net_revenue as PrecioDelProducto
           FROM
           {$wpdb->prefix}wc_order_product_lookup as or_prod
           INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
@@ -550,17 +554,271 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
 
           $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
-          $orderDateFormatted = explode(" ", $orderById[0]["orderDate"]);
-          $productsInfoArray = array_map(function($product){
-            return $product["productInfo"];
-          }, $orderItemsResult);
-          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+          $orderDateExploded = explode(" ", $orderById[0]["orderDate"]);
+          $orderDateFormatted = str_replace("-", "/", $orderDateExploded[0]); 
+
+          $orderItemsHTML = "";
+
+          foreach ($orderItemsResult as $key => $value) {
+            $orderItemsHTML .= "
+          <tr>
+          <td
+              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;word-wrap:break-word'>
+              {$value['NombreProducto']}
+          </td>
+          <td
+              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'>
+              {$value['CantidadDelProducto']}</td>
+          <td
+              style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'>
+              <span><span>$</span>{$value['PrecioDelProducto']}</span>
+          </td>
+      </tr>
+          ";
+          }
+
+          $orderShippingCustomerName = $order_data['shipping']['first_name'] . ' ' . $order_data['shipping']['last_name'];
+          
+          
 
         $toClient = $orderById[0]["email"];
-        $subjectClient = "Su Pedido #{$orderById[0]["mpOrder"]} ha sido despachado";
-        $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$orderById[0]["customerFullName"]}\n\nSolo para que lo sepas -- hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido despachado a la dirección de envío otorgada:\n\n[PEDIDO #{$orderById[0]["mpOrder"]}] ({$orderDateFormatted[0]})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$orderById[0]["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$orderById[0]["customerFullName"]}\n{$orderById[0]["orderAddress"]}\n{$orderById[0]["city"]}\n{$orderById[0]["department"]}\n{$orderById[0]["phoneNumber"]}\n{$orderById[0]["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
+        $subjectClient = "Tu pedido #$orderById[0]['mpOrder'] ha sido enviado";
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+        $messageClient = "
+        <div marginwidth='0' marginheight='0' style='padding:0'>
+    <div id='m_5128378839382569643m_5682122329319615743wrapper' dir='ltr'
+        style='background-color:#f7f7f7;margin:0;padding:70px 0;width:100%'>
+        <table width='100%' height='100%' cellspacing='0' cellpadding='0' border='0'>
+            <tbody>
+                <tr>
+                    <td valign='top' align='center'>
+                        <div id='m_5128378839382569643m_5682122329319615743template_header_image'>
+                            <p style='margin-top:0'><img
+                                    src='https://ci3.googleusercontent.com/proxy/JaaiwpvatzrbEZKl7Mg8jBQiJEnoeinrmzIVEg6ctxVXtRlaYVgqW6U4AGM8NNwSO5esVREmVvQU1FunElPD05QJnEhd4-mwClVor2Sgd65uIQuGo7wMjBtXN3jj5AdN=s0-d-e1-ft#https://fncsap.ingeniosoft.co/wp-content/uploads/2019/06/logo-fondo-claro.svg'
+                                    alt='Compro Café de Colombia'
+                                    style='border:none;display:inline-block;font-size:14px;font-weight:bold;height:auto;outline:none;text-decoration:none;text-transform:capitalize;vertical-align:middle;max-width:100%;margin-left:0;margin-right:0'
+                                    class='CToWUd' jslog='138226; u014N:xr6bB; 53:W2ZhbHNlXQ..'></p>
+                        </div>
+                        <table id='m_5128378839382569643m_5682122329319615743template_container'
+                            style='background-color:#ffffff;border:1px solid #dedede;border-radius:3px' width='600'
+                            cellspacing='0' cellpadding='0' border='0'>
+                            <tbody>
+                                <tr>
+                                    <td valign='top' align='center'>
 
-        wp_mail( $toClient, $subjectClient, $messageClient);
+                                        <table id='m_5128378839382569643m_5682122329319615743template_header'
+                                            style='background-color:#a66e66;color:#ffffff;border-bottom:0;font-weight:bold;line-height:100%;vertical-align:middle;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;border-radius:3px 3px 0 0'
+                                            width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td id='m_5128378839382569643m_5682122329319615743header_wrapper'
+                                                        style='padding:36px 48px;display:block'>
+                                                        <h1
+                                                            style='font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:30px;font-weight:300;line-height:150%;margin:0;text-align:left;color:#ffffff;background-color:inherit'>
+                                                            Tu pedido ya ha sido enviado.</h1>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td valign='top' align='center'>
+
+                                        <table id='m_5128378839382569643m_5682122329319615743template_body'
+                                            width='600' cellspacing='0' cellpadding='0' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td id='m_5128378839382569643m_5682122329319615743body_content'
+                                                        style='background-color:#ffffff' valign='top'>
+
+                                                        <table width='100%' cellspacing='0' cellpadding='20'
+                                                            border='0'>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td style='padding:48px 48px 32px' valign='top'>
+                                                                        <div id='m_5128378839382569643m_5682122329319615743body_content_inner'
+                                                                            style='color:#636363;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:14px;line-height:150%;text-align:left'>
+
+                                                                            <p style='margin:0 0 16px'>Hola, {$orderById[0]["customerFullName"]}. Solo para que lo sepas, hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido enviado a la dirección suministrada: </p>
+                                                                            <h2
+                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                <a href='https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post={$orderById[0]["mpOrder"]}&amp;action=edit'
+                                                                                    style='font-weight:normal;text-decoration:underline;color:#a66e66'
+                                                                                    target='_blank'
+                                                                                    data-saferedirecturl='https://www.google.com/url?q=https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post%3D{$orderById[0]["mpOrder"]}%26action%3Dedit&amp;source=gmail&amp;ust=1646176019157000&amp;usg=AOvVaw3QQ6LeYb-msNh6Rcl6t0ES'>[Pedido
+                                                                                    #{$orderById[0]["mpOrder"]}]</a> ({$orderDateFormatted})</h2>
+
+                                                                            <div style='margin-bottom:40px'>
+                                                                                <table
+                                                                                    style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;width:100%;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'
+                                                                                    cellspacing='0' cellpadding='6'
+                                                                                    border='1'>
+                                                                                    <thead>
+                                                                                        <tr>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Producto</th>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Cantidad</th>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Precio</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        {$orderItemsHTML}
+                                                                                    </tbody>
+                                                                                    <tfoot>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left;border-top-width:4px'>
+                                                                                                Subtotal:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left;border-top-width:4px'>
+                                                                                                <span><span>$</span>\${$order->get_subtotal()}</span>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Envío:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                <span><span>$</span>\${$order_data['shipping_total']}</span>&nbsp;<small>vía
+                                                                                                {$orderById[0]["transportGuide"]}</small>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Método de pago:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                {$order_data['payment_method_title']}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Total:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                <span><span>$</span>\${$order->get_total()}</span>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </tfoot>
+                                                                                </table>
+                                                                            </di>
+                                                                            <p style='margin:16px 0 16px'>
+                                                                                <strong>Número de
+                                                                                    documento:</strong>{$orderById[0]["docNumber"]}
+                                                                            </p>
+                                                                        
+                                                                            <table
+                                                                                id='m_5128378839382569643m_5682122329319615743addresses'
+                                                                                style='width:100%;vertical-align:top;margin-bottom:40px;padding:0'
+                                                                                cellspacing='0' cellpadding='0'
+                                                                                border='0'>
+                                                                                <tbody>
+                                                                                    <tr>
+                                                                                        <td style='text-align:left;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;border:0;padding:0'
+                                                                                            width='50%'
+                                                                                            valign='top'>
+                                                                                            <h2
+                                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                                Dirección de
+                                                                                                facturación</h2>
+
+                                                                                            <address
+                                                                                                style='padding:12px;color:#636363;border:1px solid #e5e5e5'>
+                                                                                                {$orderById[0]["customerFullName"]}<br>{$order_data['billing']['address_1']}<br>{$order_data['billing']['city']}<br>{$order_data['billing']['state']}<br>{$order_data['billing']['postcode']}
+                                                                                                <br><a
+                                                                                                    href='tel:{$order_data['billing']['phone']}'
+                                                                                                    style='color:#a66e66;font-weight:normal;text-decoration:underline'
+                                                                                                    target='_blank'>{$order_data['billing']['phone']}</a>
+                                                                                                <br><a
+                                                                                                    href='mailto:{$order_data['billing']['email']}'
+                                                                                                    target='_blank'>{$order_data['billing']['email']}</a>
+                                                                                            </address>
+                                                                                        </td>
+                                                                                        <td style='text-align:left;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;padding:0'
+                                                                                            width='50%'
+                                                                                            valign='top'>
+                                                                                            <h2
+                                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                                Dirección de envío
+                                                                                            </h2>
+
+                                                                                            <address
+                                                                                                style='padding:12px;color:#636363;border:1px solid #e5e5e5'>
+                                                                                                {$orderShippingCustomerName}<br> {$order_data['shipping']['address_1']}<br>{$order_data['shipping']['city']}<br>{$order_data['shipping']['state']}<br>{$order_data['shipping']['postcode']}
+                                                                                            </address>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign='top' align='center'>
+
+                        <table id='m_5128378839382569643m_5682122329319615743template_footer' width='600'
+                            cellspacing='0' cellpadding='10' border='0'>
+                            <tbody>
+                                <tr>
+                                    <td style='padding:0;border-radius:6px' valign='top'>
+                                        <table width='100%' cellspacing='0' cellpadding='10' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan='2'
+                                                        id='m_5128378839382569643m_5682122329319615743credit'
+                                                        style='border-radius:6px;border:0;color:#8a8a8a;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:12px;line-height:150%;text-align:center;padding:24px 0'
+                                                        valign='middle'>
+                                                        <p style='margin:0 0 16px'>Federación Nacional de Cafeteros
+                                                            2021 ©</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class='yj6qo'></div>
+        <div class='adL'>
+        </div>
+    </div>
+    <div class='adL'>
+    </div>
+</div>";
+        wp_mail( $toClient, $subjectClient, $messageClient, $headers);
       }
 
       //validamos retorno del update y devolvemos feedback en cada caso
