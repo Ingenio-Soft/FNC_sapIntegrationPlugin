@@ -40,6 +40,11 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
     exxeStatus varchar(100) NULL,
     exxeStatusUpdatedAt TIMESTAMP NULL,
     colorNumber INT NULL,
+    exxeNovedadFifteenDays TINYINT(1) NULL,
+    novedadExxeNotified TINYINT(1) NULL,
+    novedadDelayExxeNotified TINYINT(1) NULL,
+    sapErrorNotified TINYINT(1) NULL,
+    exxeError TINYINT(1) NULL,
     CONSTRAINT sapwc_orders_PK PRIMARY KEY (id) 
   )
   ENGINE=MyISAM
@@ -48,7 +53,6 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
   "; 
 
 $wpdb->query($createOrdersTableQuery);
-
 
 //tabla de productos del pedido
   $createOrderProductsTableQuery = "CREATE TABLE IF NOT EXISTS {$orderProductsTableName} (
@@ -478,7 +482,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
       //en caso de procesado (FASE 2)
       if ($isProcessed) {
         //evaluamos que no este despachado
-        if ($orderById[0]["orderStatus"] == "despachado"){
+        if ($orderById[0]["orderStatus"] == "Despachado"){
           //estado para cuando esta despachado y no puede volver al estado anterior
           $update = 2;
 
@@ -534,7 +538,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
       }
       //en caso de despachado (FASE 3)
       else{
-        $newSapStatus = "despachado";
+        $newSapStatus = "Despachado";
         date_default_timezone_set("America/Bogota");
         $currentDate = date('m-d-Y h:i:s');       
         $update = $wpdb->update( 
@@ -576,14 +580,12 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           or_prod.order_id = {$orderById[0]["mpOrder"]} AND
           prod_extra_info.order_id = {$orderById[0]["mpOrder"]}
           ";
-
           $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
           $orderDateExploded = explode(" ", $orderById[0]["orderDate"]);
           $orderDateFormatted = str_replace("-", "/", $orderDateExploded[0]); 
 
           $orderItemsHTML = "";
-
           foreach ($orderItemsResult as $key => $value) {
             $orderItemsHTML .= "
           <tr>
@@ -598,10 +600,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           </tr>
           ";
           }
-
           $orderShippingCustomerName = $order_data['shipping']['first_name'] . ' ' . $order_data['shipping']['last_name'];
-          
-          
 
          $toClient = $orderById[0]["email"];
         $subjectClient = "Tu pedido #{$orderById[0]['mpOrder']} ha sido enviado";
@@ -993,13 +992,62 @@ add_action( 'rest_api_init', function () {
     ) );
   } );
 
-  //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/messages/(?P<id>\d+)', array(
+      'methods' => 'GET',
+      'callback' => 'getOrderMessages',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
 
+  //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+  //funcion
+  function getOrderMessages($request){
+    global $wpdb;
+    $id = $request["id"];
+
+    $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
+
+    $orderMessagesQuery = "SELECT 
+    om.message
+    FROM {$orderMessagesTableName} as om
+    WHERE mpOrder = {$id}
+    ";
+    $orderMessagesResult = $wpdb->get_results($orderMessagesQuery, ARRAY_A);
+
+
+    $responseAPI = new WP_REST_Response( array("messages" => $orderMessagesResult) );
+    return $responseAPI;
+
+  }
+
+  //funcion para borrar pedido y reembolsar en woocommerce
   function deleteOrder($request){
 
     global $wpdb;
     $id = $request["id"];
-    $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+
+    $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
+
+    //CAMBIAMOS ESTADO DE PEDIDO WC A REEMBOLSADO
+    $wpdb->update($ordersWoocommerceTableName, 
+    array(
+      "status" => "wc-refunded"
+    ),
+    array(
+      "order_id" => $id
+    )
+    );
+
+    /* $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
 
     $deleteOrderProducts = "DELETE
@@ -1012,7 +1060,7 @@ add_action( 'rest_api_init', function () {
     FROM {$ordersInternTable}
     WHERE
     mpOrder = {$id} AND
-    colorNumber = 2
+    exxeNovedadFifteenDays = 1
     ";
 
     $deleteResults = $wpdb->query($deleteOrder);
@@ -1021,7 +1069,9 @@ add_action( 'rest_api_init', function () {
     if ($deleteResults > 0) {
       $responseAPI = new WP_REST_Response( array("result" => true) );
       return $responseAPI;
-    }
+    } */
+
+    return true;
   }
 
   function getOrderProducts($request){
@@ -1589,6 +1639,21 @@ if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 1hora
   // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
+
+/*----------------------------------------------------------------------*/
+//CONFIGURACION DE CORREO ENTREGADO WOOCOMMERCE
+/* add_action( 'woocommerce_email_header', 'function_woocommerce_email_header', 20, 4 );
+function function_woocommerce_email_header( $order, $sent_to_admin, $plain_text, $email ) {
+    if ( $email->id == 'customer_completed_order' ) {
+        echo '<div class="woocommerce-info">woocommerce_email_header</div>';
+    }
+} */
+
+
+
+
+
+
 
 /*----------------------------------------------------------------------*/
 
