@@ -177,10 +177,11 @@ function estructureAndInsertOrderInfo($id){
   $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
   $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
+
   $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
   $codigoDepartment = 0;
 	foreach ($shipments as $key => $value) {
-		if($value['DEPARTAMENTO'] == $order_data['billing']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['billing']['city']))
+		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
 		{
 			$codigoDepartment = $value['CODDEPARTAMENTO'];
 		}
@@ -190,8 +191,8 @@ function estructureAndInsertOrderInfo($id){
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
-      "address" => $order_data['billing']['address_1'],
-      "city" => strtoupper($order_data['billing']['city']),
+      "address" => $order_data['shipping']['address_1'],
+      "city" => strtoupper($order_data['shipping']['city']),
       "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
@@ -426,6 +427,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
   orderW.customerFullName,
   CONCAT('$', orderW.totalPrice) as totalPrice,
   orderW.phoneNumber,
+  orderW.docNumber,
   orderW.orderAddress,
   orderW.orderDate,
   orderW.email, orderW.city,
@@ -529,7 +531,9 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         //NOTIFICACION DE DESPACHADO A CLIENTE
         $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
         $orderItemsQuery = "SELECT 
-          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
+          prod_extra_info.order_item_name, 
+          or_prod.product_qty, 
+          or_prod.product_net_revenue
           FROM
           {$wpdb->prefix}wc_order_product_lookup as or_prod
           INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
@@ -775,38 +779,37 @@ add_action( 'rest_api_init', function () {
 
   }
 
-    function changeOrderStatusTest($request){
+    function changeOrderStatusTest($request){ 
 
-      /* $id = $request["id"];
 
-      [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
 
-      $colorNumber = getColorNumberFromExxeStatus($statusExxe);
-      
-      $data = array(
-        "status" => $statusExxe, 
-        "date" => $statusExxeDate, 
-        "color" => $colorNumber, 
-      ); */
+      $id = $request["id"];
 
-      $city = $request["city"];
-      $state = $request["state"];
-      $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
-      $codigoDepartment = 0;
-      $nameDepartment = "";
-			foreach ($shipments as $key => $value) {
-				if($value['DEPARTAMENTO'] == $state && $value['MUNICIPIO'] == strtoupper($city))
-				{
-					$codigoDepartment = $value['CODDEPARTAMENTO'];
-          $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-          $stateKey = array_search($codigoDepartment, array_column($states, 'c_digo_dane_del_departamento'));
-          $nameDepartment = $states[$stateKey]["departamento"];
-				}
-			};
+      $order = wc_get_order( $id ); 
+      $order_data = $order->get_data();  
+
 
       $data = array(
-        "codigo" => $codigoDepartment,
-        "Nombre de Departamento" => $nameDepartment
+        "Direccion de facturacion:" => array(
+          "name" => $order_data['billing']['first_name'] . ' ' . $order_data['billing']['last_name'],
+          "address" => $order_data['billing']['address_1'],
+          "city" => $order_data['billing']['city'],
+          "state" => $order_data['billing']['state'],
+          "postcode" => $order_data['billing']['postcode'],
+          "email" => $order_data['billing']['email'],
+          "phone" => $order_data['billing']['phone'],
+        ),
+        "Direccion de envio:" => array(
+          "name" => $order_data['shipping']['first_name'] . ' ' . $order_data['shipping']['last_name'],
+          "address" => $order_data['shipping']['address_1'],
+          "city" => $order_data['shipping']['city'],
+          "state" => $order_data['shipping']['state'],
+          "postcode" => $order_data['shipping']['postcode'],
+        ),
+        "Metodo de pago" => $order_data['payment_method_title'],
+        "Envio" => $order_data['shipping_total'],
+        "Subtotal" => $order->get_subtotal(),
+        "Total" => $order->get_total(),
       );
 
       $responseAPI = new WP_REST_Response( $data );
