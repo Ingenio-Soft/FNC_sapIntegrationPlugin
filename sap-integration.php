@@ -340,7 +340,10 @@ function estructureAndInsertOrderInfo($id){
   if ($response2JSON["responseBody"]["code"] == 1) {
     $wpdb->update(
       $ordersTableName, 
-      array('sapStatus'=> "enviado"),
+      array(
+        'sapStatus'=> "Enviado",
+        'colorNumber'=> 4,
+      ),
       array('mpOrder'=>$id)
     );
   } 
@@ -480,10 +483,32 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           $update = 2;
 
         }else{
-          $newSapStatus = $status;      
+          $sapStatuses = array(
+            "No relevante" => array(
+              "status" => "No relevante",
+              "color" => 1,
+            ),
+            "A" => array(
+              "status" => "No tratado",
+              "color" => 4,
+            ),
+            "B" => array(
+              "status" => "Tratado parcialmente",
+              "color" => 4
+            ),
+            "C" => array(
+              "status" => "Tratado completamente",
+              "color" => 4
+            ),
+          );
+          $newSapStatus = $sapStatuses[$status];
           $update = $wpdb->update( 
             $ordersInternTable, 
-            array("sapStatus" => $newSapStatus, "sapOrderId" => $sapId), 
+            array(
+              "sapStatus" => $newSapStatus["status"], 
+              "sapOrderId" => $sapId,
+              "colorNumber" => $newSapStatus["color"]
+            ), 
             array("mpOrder" => $id));
             if ($messages != null) {
               $queryMessages = "SELECT
@@ -1107,6 +1132,13 @@ add_action( 'rest_api_init', function () {
       $data = array(
         "status" => "400",
         "message" => "El Status de pedido de SAP no es válido, debe ser uno de los siguientes: {$statusValueJoin}",
+      );
+      $statusCode = 400;
+    }
+    elseif ($status == "No relevante" && $messages == null) {
+      $data = array(
+        "status" => "400",
+        "message" => "Se deben enviar los mensajes de error correspondientes al pedido.",
       );
       $statusCode = 400;
     }
