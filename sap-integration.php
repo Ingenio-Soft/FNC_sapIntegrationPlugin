@@ -532,6 +532,14 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                 }
               }
             }
+            if ($newSapStatus["color"] == 1) {
+              // $to = "comprocafedecolombia@cafedecolombia.com";
+              $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+              $subject = "Pedido #{$orderById[0]["mpOrder"]} contiene errores por parte de SAP";
+              $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido evaluado por SAP y se ha determinado que contiene errores. Por favor, realice las respectivas correcciones para reenviar el pedido.";
+
+              wp_mail( $to, $subject, $message);
+            }
         }
         
 
@@ -1037,17 +1045,7 @@ add_action( 'rest_api_init', function () {
 
     $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
 
-    //CAMBIAMOS ESTADO DE PEDIDO WC A REEMBOLSADO
-    $wpdb->update($ordersWoocommerceTableName, 
-    array(
-      "status" => "wc-refunded"
-    ),
-    array(
-      "order_id" => $id
-    )
-    );
-
-    /* $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
+    $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
 
     $deleteOrderProducts = "DELETE
@@ -1066,12 +1064,23 @@ add_action( 'rest_api_init', function () {
     $deleteResults = $wpdb->query($deleteOrder);
     $wpdb->query($deleteOrderProducts);
 
+    $data = "";
     if ($deleteResults > 0) {
-      $responseAPI = new WP_REST_Response( array("result" => true) );
-      return $responseAPI;
-    } */
+      $data = array("result" => true); 
+      //CAMBIAMOS ESTADO DE PEDIDO WC A REEMBOLSADO
+    $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-refunded"), array("order_id" => $id));
+    //AL REEMBOLSAR EN WC, HACEMOS TRIGGER DEL CORREO
+    $wcEmail = WC()->mailer();
+    $emailer = $wcEmail->emails['WC_Email_Customer_Refunded_Order']; //Enviar una nota al usuario
+    $emailer->subject = "Tu pedido No. {$id} ha sido reembolsado"; //Sujeto del correo
+    $emailer->heading = "Pedido reembolsado No. {$id}"; //Título del contenido del correo
+    $emailer->trigger($id);
+    }else{
+      $data = array("result" => false);
+    }
 
-    return true;
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
   }
 
   function getOrderProducts($request){
