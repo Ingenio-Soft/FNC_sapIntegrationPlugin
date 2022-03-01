@@ -1065,7 +1065,7 @@ font-weight: bolder;
 
     <div class="row">
         <div class="col-lg-p col-sm-6" s>
-            <div class="card-box bg-green Cardfilter" data-filterValue="4">
+            <div class="card-box bg-blue Cardfilter" data-filterValue="4">
                 <div class="inner">
                     <h3> Pedidos en proceso </h3>
                     <p>
@@ -1119,7 +1119,7 @@ font-weight: bolder;
             </div>
         </div>
         <div class="col-lg-p col-sm-6">
-            <div class="card-box bg-blue" data-page="admin.php?page=sap-integration%2Fadmin%2FEntregados.php">
+            <div class="card-box bg-green" data-page="admin.php?page=sap-integration%2Fadmin%2FEntregados.php">
                 <div class="inner">
                     <h3> Pedidos entregrados </h3>
                     <p> 
@@ -1293,10 +1293,10 @@ foreach ($resultCiudades as $key => $value) {
 					$fondo = "linear-gradient(to left top, #d69e2e, #dfae39, #e7bf44, #efcf51, #f6e05e);";
 				    }
 					if($status == 4){
-					$fondo = "linear-gradient(to left top, #48bb78, #41c18d, #3ec7a2, #43ccb4, #4fd1c5);";
+					$fondo = "linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);";
 				    }
 					if($status == 5){
-					$fondo = "linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);";
+					$fondo = "linear-gradient(to left top, #48bb78, #41c18d, #3ec7a2, #43ccb4, #4fd1c5);";
 				    }
                     echo"
                     <tr>
