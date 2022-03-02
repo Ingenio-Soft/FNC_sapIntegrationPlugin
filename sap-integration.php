@@ -1016,8 +1016,197 @@ add_action( 'rest_api_init', function () {
     ) );
   } );
 
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/resend/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'reSendOrderToSAP',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
+
+  
   //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
-  //funcion
+  //funcion para reenviar a sap
+  function reSendOrderToSAP($request){
+  global $wpdb;
+  $id = $request["id"];
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
+  $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
+  $order = wc_get_order( $id );
+  $order_data = $order->get_data(); // The Order data
+
+  //obtenemos data
+
+  //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
+  //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
+  $orderHeadersAndCustomerQuery = "SELECT 
+  orderS.order_id as mpOrder,
+  orderS.date_created as orderDate,
+  orderS.total_sales as totalPrice,
+  orderGuide.transportGuide,
+  orderGuide.docNumber,
+  orderS.customer_id
+  FROM
+  {$wpdb->prefix}wc_order_stats as orderS
+  INNER JOIN {$ordersTransportGuideTableName} as orderGuide
+    ON orderGuide.mpOrder = orderS.order_id
+  
+  WHERE
+  orderS.order_id = {$id}";
+
+  //QUERY PARA TRAER INFO DE LOS PRODUCTOS DE LA ORDEN/PEDIDO:
+
+  $orderItemsQuery = "SELECT 
+  or_prod.product_qty,
+  or_prod.product_id, 
+  or_prod.order_id as mpOrder, 
+  prod_info.sku as mpSKU,
+  prod_extra_info.order_item_name as description,
+  orderPL.meta_value as brand
+  FROM
+  {$wpdb->prefix}wc_order_product_lookup as or_prod
+  INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+  ON or_prod.product_id = prod_info.product_id
+  INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+  ON or_prod.order_item_id = prod_extra_info.order_item_id
+  INNER JOIN {$orderProductsMetaTableName} as orderPL
+  ON or_prod.order_item_id = orderPL.order_item_id
+  AND orderPL.meta_key = 'Vendido por'
+  WHERE 
+  or_prod.order_id = {$id} AND
+  prod_extra_info.order_id = {$id}
+  ";
+  $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
+  $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+  $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+  $codigoDepartment = 0;
+	foreach ($shipments as $key => $value) {
+		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
+		{
+			$codigoDepartment = $value['CODDEPARTAMENTO'];
+		}
+	};
+
+  $orderForRequestBody = array(
+    "customer" => array(
+      "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
+      "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
+      "address" => $order_data['shipping']['address_1'],
+      "city" => strtoupper($order_data['shipping']['city']),
+      "department" => $codigoDepartment,
+      "phoneNumber" => $order_data['billing']['phone'],
+      "email" => $order_data['billing']['email'],
+    ),
+    "orderHeader" => array(
+      "transportGuide" => $orderHeadersAndCustomerResults[0]["transportGuide"], //falta anadirlo desde el plugin mentor shipping
+      "mpOrder" => $orderHeadersAndCustomerResults[0]["mpOrder"], 
+    ),
+    "orderItems" => array_map("estructureOrderItems", $orderItemsResult)
+
+  );
+
+  //REENVIAMOS DATA A SAP
+  //CREDENCIALES PARA LOGIN SAP:
+  $sapCredentialsLogin = array(
+    "user" => "mkpfncuat",
+    "password" => "3TuC3Lh7FT9vtuD5",
+  );
+
+  $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
+
+
+  //HACEMOS PETICION AL LOGIN
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
+    CURLOPT_HTTPHEADER => array(
+      'Content-Type: application/json'
+    ),
+  ));
+  $response = curl_exec($curl);
+  curl_close($curl);
+  $responseJSON = json_decode($response, true);
+
+
+  $tokenJSON = 'token: ' . $responseJSON["token"];
+
+  //HACEMOS PETICION PARA ENVIAR PEDIDO
+
+  date_default_timezone_set("America/Bogota");
+  $currentDate = date('YmdHis');
+
+  $requestHeaderInfo = array(
+      "client" => "marketplace",
+      "ipAdress" => $_SERVER["REMOTE_ADDR"],
+      "userName" => "mpfncuat",
+      "sessionID" => $currentDate,
+      "requestID" => $currentDate,
+      "activeRecord" => 1,
+    );
+
+  $requestHeaderAndBodyData = array(
+    "requestHeader" => $requestHeaderInfo,
+    "requestBody" => $orderForRequestBody
+  );
+
+  $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
+
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
+    CURLOPT_HTTPHEADER => array(
+      $tokenJSON,
+      'Content-Type: application/json'
+    ),
+  ));
+
+  $response2 = curl_exec($curl);
+
+  curl_close($curl);
+  
+  $response2JSON = json_decode($response2, true);
+
+  $data = "";
+  if ($response2JSON["responseBody"]["code"] == 1) {
+    $data = array(
+      "result" => true
+    );
+  }else{
+    $data = array(
+      "result" => false,
+      "responseBody" => $response2JSON["responseBody"]
+    );
+  }
+
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
+
+  }
+  //funcion para obtener mensajes de error del pedido
   function getOrderMessages($request){
     global $wpdb;
     $id = $request["id"];
