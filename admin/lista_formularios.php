@@ -1472,6 +1472,14 @@ inputPage.addEventListener("keypress", (e) => {
 //funcionalidad para ver info del pedido y productos en modal al abrirlo
 window.addEventListener("DOMContentLoaded", () => {
 
+	//HEADERS DE AUTHORIZATION GLOBALES
+	const myHeaders = new Headers();
+	if (document.domain === "fncsap.ingeniosoft.co") {
+	    myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
+	}else{
+	    //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
+	}
+
     //botones para abrir modal
     const openModalBtns = document.querySelectorAll(".openModalBtn");
     //FOOTER DEL MODAL
@@ -1519,12 +1527,6 @@ window.addEventListener("DOMContentLoaded", () => {
             })
 
             // Hacemos peticion a API para extraer productos del pedido
-            const myHeaders = new Headers();
-            if (document.domain === "fncsap.ingeniosoft.co") {
-                myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
-            }else{
-                //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
-            }
 
             const requestOptions = {
             method: 'GET',
@@ -1556,13 +1558,7 @@ window.addEventListener("DOMContentLoaded", () => {
         })
     })
     //FUNCIONALIDAD PARA BORRAR PEDIDO CUANDO ESTA EN ESTADO 2
-    btnDeleteOrder.addEventListener("click", () => {
-        const myHeaders = new Headers();
-        if (document.domain === "fncsap.ingeniosoft.co") {
-            myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
-        }else{
-            //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
-        }
+    btnDeleteOrder.addEventListener("click", () => {     
 
         const requestOptions = {
             method: 'POST',
