@@ -1038,6 +1038,7 @@ add_action( 'rest_api_init', function () {
   function reSendOrderToSAP($request){
   global $wpdb;
   $id = $request["id"];
+  $ordersTableName = "{$wpdb->prefix}sapwc_orders";
   $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
   $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
   $order = wc_get_order( $id );
@@ -1195,6 +1196,11 @@ add_action( 'rest_api_init', function () {
     $data = array(
       "result" => true
     );
+    //ACTUALIZAMOS PEDIDO A ESTADO ENVIADO
+    $wpdb->update($ordersTableName, array(
+      "sapStatus" => "Enviado",
+      "colorNumber" => 4
+    ), array("mpOrder" => $id) );
   }else{
     $data = array(
       "result" => false,
@@ -1515,30 +1521,34 @@ function exxeCron(){
   }
 
   //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
-  sendEmailByOrderStatus(1, "orderW.novedadExxeNotified");
+  sendEmailByOrderStatus(1, "novedadExxeNotified");
   //NOTIFICAMOS PEDIDOS QUE PASARON A NOVEDAD RETRASO
-  sendEmailByOrderStatus(1, "orderW.novedadDelayExxeNotified", true);
+  sendEmailByOrderStatus(1, "novedadDelayExxeNotified", true);
   //NOTIFICAMOS A CLIENTE PEDIDOS QUE HAYAN SIDO ENTREGADOS
-  sendEmailByOrderStatus(5, "orderW.sapErrorNotified");
-
-
+  sendEmailByOrderStatus(5, "sapErrorNotified");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
   updateColorNumberIfTimePassed(4, 3, "colorNumber", 30, "SECOND");
   // updateColorNumberIfTimePassed(4, 3, "colorNumber", 7, "DAY");
 
-  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND");
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 25 DIAS Y ESTEN EN COLOR ROJO
+  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND", true);
   // updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 25, "DAY");
 };
 
-function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$timeValue, $timeParamDiff){
+function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$timeValue, $timeParamDiff, $isExxeNotify = false){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
   //extraemos fecha actual para hacer comparacion
   date_default_timezone_set("America/Bogota");
   $currentDate = date('YmdHis');
+
+  //Si el cambio es para novedad y mas de 25 dias, colocamos condicional de campo exxe error:
+  $exxeErrorWhere = "";
+  if ($isExxeNotify) {
+    $exxeErrorWhere = "AND exxeError = 1";
+  }
 
   //actualizamos cada pedido del color especificado, que haya pasado mas del tiempo especificado en ese estado, a su respectivo estado de retraso
   $updateOrders = "UPDATE
@@ -1548,6 +1558,7 @@ function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$ti
     WHERE
     colorNumber = {$currentColor} AND 
     TIMESTAMPDIFF({$timeParamDiff}, exxeStatusUpdatedAt, {$currentDate}) > {$timeValue} 
+    {$exxeErrorWhere}
     ";
 
     $wpdb->query($updateOrders);
@@ -1559,12 +1570,13 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
 
   if ($colorNumber == 5) {
     
+    $statusFieldConcat = 'orderW.' . $statusField;
   $queryEntregados = "SELECT 
   orderW.mpOrder as orderId
   FROM {$ordersInternTable} as orderW
     WHERE
     orderW.colorNumber = {$colorNumber} AND 
-    {$statusField} != 1
+    (ISNULL({$statusFieldConcat}) OR {$statusFieldConcat} = 0) 
   ";
 
   $resultsEntregados = $wpdb->get_results($queryEntregados, ARRAY_A);
@@ -1579,24 +1591,21 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
       $emailer->subject = "Tu pedido en Compro Café de Colombia ya ha sido completado"; //Sujeto del correo
       $emailer->heading = "Gracias por tu compra"; //Título del contenido del correo
       $emailer->trigger($value["orderId"]);
-
-      //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
-      if ($updateOrderStatus != false) {
-        $ordersDeliveredNotified = "UPDATE
-        {$ordersInternTable}
-        SET 
-        {$statusField} = 1
-        WHERE
-        colorNumber = {$colorNumber}
-        ";
-        $wpdb->query($ordersDeliveredNotified);    
-      }
        
     }
+    //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+    $ordersDeliveredNotified = "UPDATE
+    {$ordersInternTable}
+    SET 
+    {$statusField} = 1
+    WHERE
+    colorNumber = {$colorNumber}
+    ";
+    $wpdb->query($ordersDeliveredNotified);    
   }
   }
   else{
-    $isFifteenDaysWhere = "";
+    $isFifteenDaysWhere = "AND (ISNULL(exxeNovedadFifteenDays) OR exxeNovedadFifteenDays = 0)";
     if ($isFifteenDays) {
       $isFifteenDaysWhere = "AND exxeNovedadFifteenDays = 1";
     }
@@ -1607,7 +1616,7 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
     WHERE
     colorNumber = {$colorNumber} AND
     exxeError = 1 AND 
-    {$statusField} != 1
+    (ISNULL({$statusField}) OR {$statusField} = 0)
     {$isFifteenDaysWhere}
     ";
     $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
@@ -1629,8 +1638,8 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
         $messageInfo = "";
         $predicateInfo = "Por favor, recuerde validar con Exxe Logística el estado del pedido.";
       }else{
-        $subject = "Pedidos con novedad que llevan más de 15 días";
-        $messageInfo = " y llevan más de 15 días sin entregar";
+        $subject = "Pedidos con novedad que llevan más de 25 días";
+        $messageInfo = " y llevan más de 25 días sin entregar";
         $predicateInfo = "Por favor, recuerde ingresar a la página de administración y eliminar los pedidos si es necesario.";
       }
       $message = "Estos son los pedidos que tuvieron alguna novedad por parte de Exxe Logística{$messageInfo}. {$predicateInfo} \n {$ordersImploded} \n";
