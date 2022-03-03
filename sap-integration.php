@@ -40,6 +40,11 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
     exxeStatus varchar(100) NULL,
     exxeStatusUpdatedAt TIMESTAMP NULL,
     colorNumber INT NULL,
+    exxeNovedadFifteenDays TINYINT(1) NULL,
+    novedadExxeNotified TINYINT(1) NULL,
+    novedadDelayExxeNotified TINYINT(1) NULL,
+    sapErrorNotified TINYINT(1) NULL,
+    exxeError TINYINT(1) NULL,
     CONSTRAINT sapwc_orders_PK PRIMARY KEY (id) 
   )
   ENGINE=MyISAM
@@ -48,7 +53,6 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
   "; 
 
 $wpdb->query($createOrdersTableQuery);
-
 
 //tabla de productos del pedido
   $createOrderProductsTableQuery = "CREATE TABLE IF NOT EXISTS {$orderProductsTableName} (
@@ -177,10 +181,11 @@ function estructureAndInsertOrderInfo($id){
   $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
   $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
+
   $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
   $codigoDepartment = 0;
 	foreach ($shipments as $key => $value) {
-		if($value['DEPARTAMENTO'] == $order_data['billing']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['billing']['city']))
+		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
 		{
 			$codigoDepartment = $value['CODDEPARTAMENTO'];
 		}
@@ -190,8 +195,8 @@ function estructureAndInsertOrderInfo($id){
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
-      "address" => $order_data['billing']['address_1'],
-      "city" => strtoupper($order_data['billing']['city']),
+      "address" => $order_data['shipping']['address_1'],
+      "city" => strtoupper($order_data['shipping']['city']),
       "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
@@ -339,7 +344,10 @@ function estructureAndInsertOrderInfo($id){
   if ($response2JSON["responseBody"]["code"] == 1) {
     $wpdb->update(
       $ordersTableName, 
-      array('sapStatus'=> "enviado"),
+      array(
+        'sapStatus'=> "Enviado",
+        'colorNumber'=> 4,
+      ),
       array('mpOrder'=>$id)
     );
   } 
@@ -426,6 +434,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
   orderW.customerFullName,
   CONCAT('$', orderW.totalPrice) as totalPrice,
   orderW.phoneNumber,
+  orderW.docNumber,
   orderW.orderAddress,
   orderW.orderDate,
   orderW.email, orderW.city,
@@ -473,15 +482,37 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
       //en caso de procesado (FASE 2)
       if ($isProcessed) {
         //evaluamos que no este despachado
-        if ($orderById[0]["orderStatus"] == "despachado"){
+        if ($orderById[0]["orderStatus"] == "Despachado"){
           //estado para cuando esta despachado y no puede volver al estado anterior
           $update = 2;
 
         }else{
-          $newSapStatus = $status;      
+          $sapStatuses = array(
+            "No relevante" => array(
+              "status" => "No relevante",
+              "color" => 1,
+            ),
+            "A" => array(
+              "status" => "No tratado",
+              "color" => 4,
+            ),
+            "B" => array(
+              "status" => "Tratado parcialmente",
+              "color" => 4
+            ),
+            "C" => array(
+              "status" => "Tratado completamente",
+              "color" => 4
+            ),
+          );
+          $newSapStatus = $sapStatuses[$status];
           $update = $wpdb->update( 
             $ordersInternTable, 
-            array("sapStatus" => $newSapStatus, "sapOrderId" => $sapId), 
+            array(
+              "sapStatus" => $newSapStatus["status"], 
+              "sapOrderId" => $sapId,
+              "colorNumber" => $newSapStatus["color"]
+            ), 
             array("mpOrder" => $id));
             if ($messages != null) {
               $queryMessages = "SELECT
@@ -501,13 +532,21 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                 }
               }
             }
+            if ($newSapStatus["color"] == 1) {
+              // $to = "comprocafedecolombia@cafedecolombia.com";
+              $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+              $subject = "Pedido #{$orderById[0]["mpOrder"]} contiene errores por parte de SAP";
+              $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido evaluado por SAP y se ha determinado que contiene errores. Por favor, realice las respectivas correcciones para reenviar el pedido.";
+
+              wp_mail( $to, $subject, $message);
+            }
         }
         
 
       }
       //en caso de despachado (FASE 3)
       else{
-        $newSapStatus = "despachado";
+        $newSapStatus = "Despachado";
         date_default_timezone_set("America/Bogota");
         $currentDate = date('m-d-Y h:i:s');       
         $update = $wpdb->update( 
@@ -527,9 +566,15 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
 
         wp_mail( $to, $subject, $message);
         //NOTIFICACION DE DESPACHADO A CLIENTE
+
+        $order = wc_get_order( $orderById[0]["mpOrder"] ); 
+        $order_data = $order->get_data();  
+
         $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
         $orderItemsQuery = "SELECT 
-          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
+          prod_extra_info.order_item_name as NombreProducto, 
+          or_prod.product_qty as CantidadDelProducto, 
+          or_prod.product_net_revenue as PrecioDelProducto
           FROM
           {$wpdb->prefix}wc_order_product_lookup as or_prod
           INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
@@ -540,23 +585,269 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           ON or_prod.order_item_id = orderPL.order_item_id
           AND orderPL.meta_key = 'Vendido por'
           WHERE 
-          or_prod.order_id = {$id} AND
-          prod_extra_info.order_id = {$id}
+          or_prod.order_id = {$orderById[0]["mpOrder"]} AND
+          prod_extra_info.order_id = {$orderById[0]["mpOrder"]}
           ";
-
           $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
-          $orderDateFormatted = explode(" ", $orderById[0]["orderDate"]);
-          $productsInfoArray = array_map(function($product){
-            return $product["productInfo"];
-          }, $orderItemsResult);
-          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+          $orderDateExploded = explode(" ", $orderById[0]["orderDate"]);
+          $orderDateFormatted = str_replace("-", "/", $orderDateExploded[0]); 
 
-        $toClient = $orderById[0]["email"];
-        $subjectClient = "Su Pedido #{$orderById[0]["mpOrder"]} ha sido despachado";
-        $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$orderById[0]["customerFullName"]}\n\nSolo para que lo sepas -- hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido despachado a la dirección de envío otorgada:\n\n[PEDIDO #{$orderById[0]["mpOrder"]}] ({$orderDateFormatted[0]})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$orderById[0]["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$orderById[0]["customerFullName"]}\n{$orderById[0]["orderAddress"]}\n{$orderById[0]["city"]}\n{$orderById[0]["department"]}\n{$orderById[0]["phoneNumber"]}\n{$orderById[0]["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
+          $orderItemsHTML = "";
+          foreach ($orderItemsResult as $key => $value) {
+            $orderItemsHTML .= "
+          <tr>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;word-wrap:break-word'>
+              {$value['NombreProducto']}
+          </td>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif'>
+              {$value['CantidadDelProducto']}</td>
+          <td style='color:#636363;border:1px solid #e5e5e5;padding:12px;text-align:left;vertical-align:middle;font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif'>
+              <span><span>$</span>{$value['PrecioDelProducto']}</span>
+          </td>
+          </tr>
+          ";
+          }
+          $orderShippingCustomerName = $order_data['shipping']['first_name'] . ' ' . $order_data['shipping']['last_name'];
 
-        wp_mail( $toClient, $subjectClient, $messageClient);
+         $toClient = $orderById[0]["email"];
+        $subjectClient = "Tu pedido #{$orderById[0]['mpOrder']} ha sido enviado";
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
+        $messageClient = "
+        <div marginwidth='0' marginheight='0' style='padding:0'>
+    <div id='m_5128378839382569643m_5682122329319615743wrapper' dir='ltr'
+        style='background-color:#f7f7f7;margin:0;padding:70px 0;width:100%'>
+        <table width='100%' height='100%' cellspacing='0' cellpadding='0' border='0'>
+            <tbody>
+                <tr>
+                    <td valign='top' align='center'>
+                        <div id='m_5128378839382569643m_5682122329319615743template_header_image'>
+                            <p style='margin-top:0'><img
+                                    src='https://ci3.googleusercontent.com/proxy/JaaiwpvatzrbEZKl7Mg8jBQiJEnoeinrmzIVEg6ctxVXtRlaYVgqW6U4AGM8NNwSO5esVREmVvQU1FunElPD05QJnEhd4-mwClVor2Sgd65uIQuGo7wMjBtXN3jj5AdN=s0-d-e1-ft#https://fncsap.ingeniosoft.co/wp-content/uploads/2019/06/logo-fondo-claro.svg'
+                                    alt='Compro Café de Colombia'
+                                    style='border:none;display:inline-block;font-size:14px;font-weight:bold;height:auto;outline:none;text-decoration:none;text-transform:capitalize;vertical-align:middle;max-width:100%;margin-left:0;margin-right:0'
+                                    class='CToWUd' jslog='138226; u014N:xr6bB; 53:W2ZhbHNlXQ..'></p>
+                        </div>
+                        <table id='m_5128378839382569643m_5682122329319615743template_container'
+                            style='background-color:#ffffff;border:1px solid #dedede;border-radius:3px' width='600'
+                            cellspacing='0' cellpadding='0' border='0'>
+                            <tbody>
+                                <tr>
+                                    <td valign='top' align='center'>
+
+                                        <table id='m_5128378839382569643m_5682122329319615743template_header'
+                                            style='background-color:#a66e66;color:#ffffff;border-bottom:0;font-weight:bold;line-height:100%;vertical-align:middle;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;border-radius:3px 3px 0 0'
+                                            width='100%' cellspacing='0' cellpadding='0' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td id='m_5128378839382569643m_5682122329319615743header_wrapper'
+                                                        style='padding:36px 48px;display:block'>
+                                                        <h1
+                                                            style='font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:30px;font-weight:300;line-height:150%;margin:0;text-align:left;color:#ffffff;background-color:inherit'>
+                                                            Tu pedido ya ha sido enviado.</h1>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td valign='top' align='center'>
+
+                                        <table id='m_5128378839382569643m_5682122329319615743template_body'
+                                            width='600' cellspacing='0' cellpadding='0' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td id='m_5128378839382569643m_5682122329319615743body_content'
+                                                        style='background-color:#ffffff' valign='top'>
+
+                                                        <table width='100%' cellspacing='0' cellpadding='20'
+                                                            border='0'>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td style='padding:48px 48px 32px' valign='top'>
+                                                                        <div id='m_5128378839382569643m_5682122329319615743body_content_inner'
+                                                                            style='color:#636363;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:14px;line-height:150%;text-align:left'>
+
+                                                                            <p style='margin:0 0 16px'>Hola, {$orderById[0]["customerFullName"]}. Solo para que lo sepas, hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido enviado a la dirección suministrada: </p>
+                                                                            <h2
+                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                <a href='https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post={$orderById[0]["mpOrder"]}&amp;action=edit'
+                                                                                    style='font-weight:normal;text-decoration:underline;color:#a66e66'
+                                                                                    target='_blank'
+                                                                                    data-saferedirecturl='https://www.google.com/url?q=https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post%3D{$orderById[0]["mpOrder"]}%26action%3Dedit&amp;source=gmail&amp;ust=1646176019157000&amp;usg=AOvVaw3QQ6LeYb-msNh6Rcl6t0ES'>[Pedido
+                                                                                    #{$orderById[0]["mpOrder"]}]</a> ({$orderDateFormatted})</h2>
+
+                                                                            <div style='margin-bottom:40px'>
+                                                                                <table
+                                                                                    style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;width:100%;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif'
+                                                                                    cellspacing='0' cellpadding='6'
+                                                                                    border='1'>
+                                                                                    <thead>
+                                                                                        <tr>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Producto</th>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Cantidad</th>
+                                                                                            <th scope='col'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Precio</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        {$orderItemsHTML}
+                                                                                    </tbody>
+                                                                                    <tfoot>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left;border-top-width:4px'>
+                                                                                                Subtotal:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left;border-top-width:4px'>
+                                                                                                <span><span>$</span>{$order->get_subtotal()}</span>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Envío:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                <span><span>$</span>{$order_data['shipping_total']}</span>&nbsp;<small>vía
+                                                                                                {$orderById[0]["transportGuide"]}</small>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Método de pago:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                {$order_data['payment_method_title']}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                        <tr>
+                                                                                            <th scope='row'
+                                                                                                colspan='2'
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                Total:</th>
+                                                                                            <td
+                                                                                                style='color:#636363;border:1px solid #e5e5e5;vertical-align:middle;padding:12px;text-align:left'>
+                                                                                                <span><span>$</span>{$order->get_total()}</span>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </tfoot>
+                                                                                </table>
+                                                                            </di>
+                                                                            <p style='margin:16px 0 16px'>
+                                                                                <strong>Número de
+                                                                                    documento:</strong>{$orderById[0]["docNumber"]}
+                                                                            </p>
+                                                                        
+                                                                            <table
+                                                                                id='m_5128378839382569643m_5682122329319615743addresses'
+                                                                                style='width:100%;vertical-align:top;margin-bottom:40px;padding:0'
+                                                                                cellspacing='0' cellpadding='0'
+                                                                                border='0'>
+                                                                                <tbody>
+                                                                                    <tr>
+                                                                                        <td style='text-align:left;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;border:0;padding:0'
+                                                                                            width='50%'
+                                                                                            valign='top'>
+                                                                                            <h2
+                                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                                Dirección de
+                                                                                                facturación</h2>
+
+                                                                                            <address
+                                                                                                style='padding:12px;color:#636363;border:1px solid #e5e5e5'>
+                                                                                                {$orderById[0]["customerFullName"]}<br>{$order_data['billing']['address_1']}<br>{$order_data['billing']['city']}<br>{$order_data['billing']['state']}<br>{$order_data['billing']['postcode']}
+                                                                                                <br><a
+                                                                                                    href='tel:{$order_data['billing']['phone']}'
+                                                                                                    style='color:#a66e66;font-weight:normal;text-decoration:underline'
+                                                                                                    target='_blank'>{$order_data['billing']['phone']}</a>
+                                                                                                <br><a
+                                                                                                    href='mailto:{$order_data['billing']['email']}'
+                                                                                                    target='_blank'>{$order_data['billing']['email']}</a>
+                                                                                            </address>
+                                                                                        </td>
+                                                                                        <td style='text-align:left;font-family:'Helvetica Neue',Helvetica,Roboto,Arial,sans-serif;padding:0'
+                                                                                            width='50%'
+                                                                                            valign='top'>
+                                                                                            <h2
+                                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                                Dirección de envío
+                                                                                            </h2>
+
+                                                                                            <address
+                                                                                                style='padding:12px;color:#636363;border:1px solid #e5e5e5'>
+                                                                                                {$orderShippingCustomerName}<br> {$order_data['shipping']['address_1']}<br>{$order_data['shipping']['city']}<br>{$order_data['shipping']['state']}<br>{$order_data['shipping']['postcode']}
+                                                                                            </address>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign='top' align='center'>
+
+                        <table id='m_5128378839382569643m_5682122329319615743template_footer' width='600'
+                            cellspacing='0' cellpadding='10' border='0'>
+                            <tbody>
+                                <tr>
+                                    <td style='padding:0;border-radius:6px' valign='top'>
+                                        <table width='100%' cellspacing='0' cellpadding='10' border='0'>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan='2'
+                                                        id='m_5128378839382569643m_5682122329319615743credit'
+                                                        style='border-radius:6px;border:0;color:#8a8a8a;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:12px;line-height:150%;text-align:center;padding:24px 0'
+                                                        valign='middle'>
+                                                        <p style='margin:0 0 16px'>Federación Nacional de Cafeteros
+                                                            2021 ©</p>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class='yj6qo'></div>
+        <div class='adL'>
+        </div>
+    </div>
+    <div class='adL'>
+    </div>
+</div>";
+        wp_mail( $toClient, $subjectClient, $messageClient, $headers);
       }
 
       //validamos retorno del update y devolvemos feedback en cada caso
@@ -709,12 +1000,246 @@ add_action( 'rest_api_init', function () {
     ) );
   } );
 
-  //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/messages/(?P<id>\d+)', array(
+      'methods' => 'GET',
+      'callback' => 'getOrderMessages',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
 
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'sapintegration/v1', '/orders/resend/(?P<id>\d+)', array(
+      'methods' => 'POST',
+      'callback' => 'reSendOrderToSAP',
+      'args' => array(
+        'id' => array(
+          //validacion del id
+          'validate_callback' => function($param, $request, $key) {
+            //validar que sea numerico
+            return is_numeric( $param );
+          }
+        ),
+      )
+    ) );
+  } );
+
+  
+  //FUNCIONES DE CALLBACK PARA CADA ENDPOINT
+  //funcion para reenviar a sap
+  function reSendOrderToSAP($request){
+  global $wpdb;
+  $id = $request["id"];
+  $ordersTableName = "{$wpdb->prefix}sapwc_orders";
+  $ordersTransportGuideTableName = "{$wpdb->prefix}sapwc_orders_transportguides";
+  $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
+  $order = wc_get_order( $id );
+  $order_data = $order->get_data(); // The Order data
+
+  //obtenemos data
+
+  //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
+  //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
+  $orderHeadersAndCustomerQuery = "SELECT 
+  orderS.order_id as mpOrder,
+  orderS.date_created as orderDate,
+  orderS.total_sales as totalPrice,
+  orderGuide.transportGuide,
+  orderGuide.docNumber,
+  orderS.customer_id
+  FROM
+  {$wpdb->prefix}wc_order_stats as orderS
+  INNER JOIN {$ordersTransportGuideTableName} as orderGuide
+    ON orderGuide.mpOrder = orderS.order_id
+  
+  WHERE
+  orderS.order_id = {$id}";
+
+  //QUERY PARA TRAER INFO DE LOS PRODUCTOS DE LA ORDEN/PEDIDO:
+
+  $orderItemsQuery = "SELECT 
+  or_prod.product_qty,
+  or_prod.product_id, 
+  or_prod.order_id as mpOrder, 
+  prod_info.sku as mpSKU,
+  prod_extra_info.order_item_name as description,
+  orderPL.meta_value as brand
+  FROM
+  {$wpdb->prefix}wc_order_product_lookup as or_prod
+  INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+  ON or_prod.product_id = prod_info.product_id
+  INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+  ON or_prod.order_item_id = prod_extra_info.order_item_id
+  INNER JOIN {$orderProductsMetaTableName} as orderPL
+  ON or_prod.order_item_id = orderPL.order_item_id
+  AND orderPL.meta_key = 'Vendido por'
+  WHERE 
+  or_prod.order_id = {$id} AND
+  prod_extra_info.order_id = {$id}
+  ";
+  $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
+  $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+  $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+  $codigoDepartment = 0;
+	foreach ($shipments as $key => $value) {
+		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
+		{
+			$codigoDepartment = $value['CODDEPARTAMENTO'];
+		}
+	};
+
+  $orderForRequestBody = array(
+    "customer" => array(
+      "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
+      "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
+      "address" => $order_data['shipping']['address_1'],
+      "city" => strtoupper($order_data['shipping']['city']),
+      "department" => $codigoDepartment,
+      "phoneNumber" => $order_data['billing']['phone'],
+      "email" => $order_data['billing']['email'],
+    ),
+    "orderHeader" => array(
+      "transportGuide" => $orderHeadersAndCustomerResults[0]["transportGuide"], //falta anadirlo desde el plugin mentor shipping
+      "mpOrder" => $orderHeadersAndCustomerResults[0]["mpOrder"], 
+    ),
+    "orderItems" => array_map("estructureOrderItems", $orderItemsResult)
+
+  );
+
+  //REENVIAMOS DATA A SAP
+  //CREDENCIALES PARA LOGIN SAP:
+  $sapCredentialsLogin = array(
+    "user" => "mkpfncuat",
+    "password" => "3TuC3Lh7FT9vtuD5",
+  );
+
+  $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
+
+
+  //HACEMOS PETICION AL LOGIN
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
+    CURLOPT_HTTPHEADER => array(
+      'Content-Type: application/json'
+    ),
+  ));
+  $response = curl_exec($curl);
+  curl_close($curl);
+  $responseJSON = json_decode($response, true);
+
+
+  $tokenJSON = 'token: ' . $responseJSON["token"];
+
+  //HACEMOS PETICION PARA ENVIAR PEDIDO
+
+  date_default_timezone_set("America/Bogota");
+  $currentDate = date('YmdHis');
+
+  $requestHeaderInfo = array(
+      "client" => "marketplace",
+      "ipAdress" => $_SERVER["REMOTE_ADDR"],
+      "userName" => "mpfncuat",
+      "sessionID" => $currentDate,
+      "requestID" => $currentDate,
+      "activeRecord" => 1,
+    );
+
+  $requestHeaderAndBodyData = array(
+    "requestHeader" => $requestHeaderInfo,
+    "requestBody" => $orderForRequestBody
+  );
+
+  $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
+
+  $curl = curl_init();
+  curl_setopt_array($curl, array(
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_ENCODING => '',
+    CURLOPT_MAXREDIRS => 10,
+    CURLOPT_TIMEOUT => 0,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    CURLOPT_CUSTOMREQUEST => 'POST',
+    CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
+    CURLOPT_HTTPHEADER => array(
+      $tokenJSON,
+      'Content-Type: application/json'
+    ),
+  ));
+
+  $response2 = curl_exec($curl);
+
+  curl_close($curl);
+  
+  $response2JSON = json_decode($response2, true);
+
+  $data = "";
+  if ($response2JSON["responseBody"]["code"] == 1) {
+    $data = array(
+      "result" => true
+    );
+    //ACTUALIZAMOS PEDIDO A ESTADO ENVIADO
+    $wpdb->update($ordersTableName, array(
+      "sapStatus" => "Enviado",
+      "colorNumber" => 4
+    ), array("mpOrder" => $id) );
+  }else{
+    $data = array(
+      "result" => false,
+      "responseBody" => $response2JSON["responseBody"]
+    );
+  }
+
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
+
+  }
+  //funcion para obtener mensajes de error del pedido
+  function getOrderMessages($request){
+    global $wpdb;
+    $id = $request["id"];
+
+    $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
+
+    $orderMessagesQuery = "SELECT 
+    om.message
+    FROM {$orderMessagesTableName} as om
+    WHERE mpOrder = {$id}
+    ";
+    $orderMessagesResult = $wpdb->get_results($orderMessagesQuery, ARRAY_A);
+
+
+    $responseAPI = new WP_REST_Response( array("messages" => $orderMessagesResult) );
+    return $responseAPI;
+
+  }
+
+  //funcion para borrar pedido y reembolsar en woocommerce
   function deleteOrder($request){
 
     global $wpdb;
     $id = $request["id"];
+
+    $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
+
     $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
 
@@ -728,16 +1253,29 @@ add_action( 'rest_api_init', function () {
     FROM {$ordersInternTable}
     WHERE
     mpOrder = {$id} AND
-    colorNumber = 2
+    exxeNovedadFifteenDays = 1
     ";
 
     $deleteResults = $wpdb->query($deleteOrder);
     $wpdb->query($deleteOrderProducts);
 
+    $data = "";
     if ($deleteResults > 0) {
-      $responseAPI = new WP_REST_Response( array("result" => true) );
-      return $responseAPI;
+      $data = array("result" => true); 
+      //CAMBIAMOS ESTADO DE PEDIDO WC A REEMBOLSADO
+    $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-refunded"), array("order_id" => $id));
+    //AL REEMBOLSAR EN WC, HACEMOS TRIGGER DEL CORREO
+    $wcEmail = WC()->mailer();
+    $emailer = $wcEmail->emails['WC_Email_Customer_Refunded_Order']; //Enviar una nota al usuario
+    $emailer->subject = "Tu pedido No. {$id} ha sido reembolsado"; //Sujeto del correo
+    $emailer->heading = "Pedido reembolsado No. {$id}"; //Título del contenido del correo
+    $emailer->trigger($id);
+    }else{
+      $data = array("result" => false);
     }
+
+    $responseAPI = new WP_REST_Response( $data );
+    return $responseAPI;
   }
 
   function getOrderProducts($request){
@@ -775,38 +1313,37 @@ add_action( 'rest_api_init', function () {
 
   }
 
-    function changeOrderStatusTest($request){
+    function changeOrderStatusTest($request){ 
 
-      /* $id = $request["id"];
 
-      [$statusExxe, $statusExxeDate] =  getExxeStatusByTransportGuide($id);
 
-      $colorNumber = getColorNumberFromExxeStatus($statusExxe);
-      
-      $data = array(
-        "status" => $statusExxe, 
-        "date" => $statusExxeDate, 
-        "color" => $colorNumber, 
-      ); */
+      $id = $request["id"];
 
-      $city = $request["city"];
-      $state = $request["state"];
-      $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
-      $codigoDepartment = 0;
-      $nameDepartment = "";
-			foreach ($shipments as $key => $value) {
-				if($value['DEPARTAMENTO'] == $state && $value['MUNICIPIO'] == strtoupper($city))
-				{
-					$codigoDepartment = $value['CODDEPARTAMENTO'];
-          $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-          $stateKey = array_search($codigoDepartment, array_column($states, 'c_digo_dane_del_departamento'));
-          $nameDepartment = $states[$stateKey]["departamento"];
-				}
-			};
+      $order = wc_get_order( $id ); 
+      $order_data = $order->get_data();  
+
 
       $data = array(
-        "codigo" => $codigoDepartment,
-        "Nombre de Departamento" => $nameDepartment
+        "Direccion de facturacion:" => array(
+          "name" => $order_data['billing']['first_name'] . ' ' . $order_data['billing']['last_name'],
+          "address" => $order_data['billing']['address_1'],
+          "city" => $order_data['billing']['city'],
+          "state" => $order_data['billing']['state'],
+          "postcode" => $order_data['billing']['postcode'],
+          "email" => $order_data['billing']['email'],
+          "phone" => $order_data['billing']['phone'],
+        ),
+        "Direccion de envio:" => array(
+          "name" => $order_data['shipping']['first_name'] . ' ' . $order_data['shipping']['last_name'],
+          "address" => $order_data['shipping']['address_1'],
+          "city" => $order_data['shipping']['city'],
+          "state" => $order_data['shipping']['state'],
+          "postcode" => $order_data['shipping']['postcode'],
+        ),
+        "Metodo de pago" => $order_data['payment_method_title'],
+        "Envio" => $order_data['shipping_total'],
+        "Subtotal" => $order->get_subtotal(),
+        "Total" => $order->get_total(),
       );
 
       $responseAPI = new WP_REST_Response( $data );
@@ -846,6 +1383,13 @@ add_action( 'rest_api_init', function () {
       $data = array(
         "status" => "400",
         "message" => "El Status de pedido de SAP no es válido, debe ser uno de los siguientes: {$statusValueJoin}",
+      );
+      $statusCode = 400;
+    }
+    elseif ($status == "No relevante" && $messages == null) {
+      $data = array(
+        "status" => "400",
+        "message" => "Se deben enviar los mensajes de error correspondientes al pedido.",
       );
       $statusCode = 400;
     }
@@ -927,8 +1471,12 @@ function exxeCron(){
   FROM
   {$ordersInternTable} as orderS
   WHERE
-  orderS.sapStatus = 'despachado' AND
-  (ISNULL(orderS.colorNumber) OR orderS.colorNumber = 4 OR orderS.colorNumber = 3 )
+  orderS.sapStatus = 'Despachado' AND
+  (
+    ISNULL(orderS.colorNumber) OR 
+    orderS.colorNumber = 4 OR 
+    orderS.colorNumber = 3 OR 
+    orderS.colorNumber = 1 )
   ";
 
   $ordersSentResults = $wpdb->get_results($ordersSent, ARRAY_A);
@@ -961,6 +1509,11 @@ function exxeCron(){
                 "exxeStatusUpdatedAt" => $statusExxeDate,
               ), 
               array("id" => $order_id));
+              if ($colorNumber == 1) {
+                $wpdb->update($ordersInternTable, array("exxeError" => 1), array("id" => $order_id));
+              }else{
+                $wpdb->update($ordersInternTable, array("exxeError" => 0), array("id" => $order_id));
+              }
           }
 
       }
@@ -968,20 +1521,22 @@ function exxeCron(){
   }
 
   //NOTIFICAMOS PEDIDOS QUE HAYAN PASADO A ROJO
-  sendEmailByOrderStatus(1, "NOVEDAD NOTIFICADO");
+  sendEmailByOrderStatus(1, "novedadExxeNotified");
+  //NOTIFICAMOS PEDIDOS QUE PASARON A NOVEDAD RETRASO
+  sendEmailByOrderStatus(1, "novedadDelayExxeNotified", true);
   //NOTIFICAMOS A CLIENTE PEDIDOS QUE HAYAN SIDO ENTREGADOS
-  sendEmailByOrderStatus(5, "ENTREGADO NOTIFICADO");
+  sendEmailByOrderStatus(5, "sapErrorNotified");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-  updateColorNumberIfTimePassed(4, 3, 30, "SECOND");
-  // updateColorNumberIfTimePassed(4, 3, 7, "DAY");
+  updateColorNumberIfTimePassed(4, 3, "colorNumber", 30, "SECOND");
+  // updateColorNumberIfTimePassed(4, 3, "colorNumber", 7, "DAY");
 
-  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 15 DIAS Y ESTEN EN COLOR ROJO
-  updateColorNumberIfTimePassed(1, 2, 30, "SECOND");
-  // updateColorNumberIfTimePassed(1, 2, 15, "DAY");
+  //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 25 DIAS Y ESTEN EN COLOR ROJO
+  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND", true);
+  // updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 25, "DAY");
 };
 
-function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $timeParamDiff){
+function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$timeValue, $timeParamDiff, $isExxeNotify = false){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
@@ -989,100 +1544,80 @@ function updateColorNumberIfTimePassed($currentColor, $newColor, $timeValue, $ti
   date_default_timezone_set("America/Bogota");
   $currentDate = date('YmdHis');
 
+  //Si el cambio es para novedad y mas de 25 dias, colocamos condicional de campo exxe error:
+  $exxeErrorWhere = "";
+  if ($isExxeNotify) {
+    $exxeErrorWhere = "AND exxeError = 1";
+  }
+
   //actualizamos cada pedido del color especificado, que haya pasado mas del tiempo especificado en ese estado, a su respectivo estado de retraso
   $updateOrders = "UPDATE
     {$ordersInternTable}
     SET
-    colorNumber = {$newColor}
+    {$valueField} = {$newColor}
     WHERE
     colorNumber = {$currentColor} AND 
     TIMESTAMPDIFF({$timeParamDiff}, exxeStatusUpdatedAt, {$currentDate}) > {$timeValue} 
+    {$exxeErrorWhere}
     ";
 
     $wpdb->query($updateOrders);
-
-    //ESTABLECEMOS MENSAJES DE CORREO CUANDO CAMBIA A ESTADO NARANJA, MOSTRANDO INFO BASICA DE CADA PEDIDO ACTUALIZADO
-    if ($newColor == 2) {
-      sendEmailByOrderStatus($newColor, "NOTIFICADO"); 
-    }
 }
 
-function sendEmailByOrderStatus($colorNumber, $newStatus){
+function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = false){
   global $wpdb;
   $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
 
   if ($colorNumber == 5) {
     
+    $statusFieldConcat = 'orderW.' . $statusField;
   $queryEntregados = "SELECT 
-  orderW.mpOrder, orderW.transportGuide,
-  orderW.sapStatus as orderStatus, 
-  orderW.customerFullName,
-  CONCAT('$', orderW.totalPrice) as totalPrice,
-  orderW.phoneNumber,
-  orderW.orderAddress,
-  orderW.orderDate,
-  orderW.email, orderW.city,
-  orderW.department
+  orderW.mpOrder as orderId
   FROM {$ordersInternTable} as orderW
     WHERE
     orderW.colorNumber = {$colorNumber} AND 
-    orderW.sapStatus != '{$newStatus}'
+    (ISNULL({$statusFieldConcat}) OR {$statusFieldConcat} = 0) 
   ";
 
   $resultsEntregados = $wpdb->get_results($queryEntregados, ARRAY_A);
   if (sizeof($resultsEntregados) > 0) {
     foreach ($resultsEntregados as $key => $value) {
-      $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
-      $orderItemsQuery = "SELECT 
-          CONCAT(prod_extra_info.order_item_name, ' X ', or_prod.product_qty, ' = ', or_prod.product_net_revenue, ' - Vendido Por: ', orderPL.meta_value) as productInfo
-          FROM
-          {$wpdb->prefix}wc_order_product_lookup as or_prod
-          INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-          ON or_prod.product_id = prod_info.product_id
-          INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
-          ON or_prod.order_item_id = prod_extra_info.order_item_id
-          INNER JOIN {$orderProductsMetaTableName} as orderPL
-          ON or_prod.order_item_id = orderPL.order_item_id
-          AND orderPL.meta_key = 'Vendido por'
-          WHERE 
-          or_prod.order_id = {$value["mpOrder"]} AND
-          prod_extra_info.order_id = {$value["mpOrder"]}
-          ";
-          $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
 
-          $orderDateFormatted = explode(" ", $value["orderDate"]);
-          $productsInfoArray = array_map(function($product){
-            return $product["productInfo"];
-          }, $orderItemsResult);
-          $productsInfoFormatted = implode("\n\n", $productsInfoArray); 
+      $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
+      $updateOrderStatus = $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-completed"), array("order_id" => $value["orderId"]));
 
-          $toClient = $value["email"];
-          $subjectClient = "Su Pedido #{$value["mpOrder"]} ha sido entregado";
-          $messageClient = "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\nGracias por tu pedido\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\nHola, {$value["customerFullName"]}\n\nSolo para que lo sepas -- hemos entregado tu pedido a la dirección de envío otorgada:\n\n[PEDIDO #{$value["mpOrder"]}] ({$orderDateFormatted[0]})\n\n{$productsInfoFormatted}\n==========\n\nMétodo de pago:  Checkout ePayco (Tarjetas de crédito,debito,PSE)\nTotal (incluyendo envio):   {$value["totalPrice"]}\n\n----------------------------------------\n\nINFORMACIÓN DE FACTURACIÓN\n\n{$value["customerFullName"]}\n{$value["orderAddress"]}\n{$value["city"]}\n{$value["department"]}\n{$value["phoneNumber"]}\n{$value["email"]}\n----------------------------------------\n\n¡Gracias por usar {$_SERVER['SERVER_NAME']}!\n\nRecuerde que cada vez que toma una taza de café 100% colombiano,\napoya a más de 540 mil familias caficultoras, que ofrecen al mundo un\ncafé que simboliza nuestro orgullo colombiano.\n\n----------------------------------------\n\nFederación Nacional de Cafeteros 2021 (c)";
-  
-          $wasEmailSent = wp_mail( $toClient, $subjectClient, $messageClient);
-          if ($wasEmailSent) {
-            //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
-            $ordersDeliveredNotified = "UPDATE
-            {$ordersInternTable}
-            SET 
-            sapStatus = '{$newStatus}'
-            WHERE
-            colorNumber = {$colorNumber}
-            ";
-            $wpdb->query($ordersDeliveredNotified);
-          }
+      $wcEmail = WC()->mailer();
+      $emailer = $wcEmail->emails['WC_Email_Customer_Completed_Order']; //Enviar una nota al usuario
+      $emailer->subject = "Tu pedido en Compro Café de Colombia ya ha sido completado"; //Sujeto del correo
+      $emailer->heading = "Gracias por tu compra"; //Título del contenido del correo
+      $emailer->trigger($value["orderId"]);
+       
     }
+    //ACTUALIZAMOS EXXESTATUS DE ESTOS PEDIDOS PARA NO RECIBIR MAS CORREOS DE ELLOS
+    $ordersDeliveredNotified = "UPDATE
+    {$ordersInternTable}
+    SET 
+    {$statusField} = 1
+    WHERE
+    colorNumber = {$colorNumber}
+    ";
+    $wpdb->query($ordersDeliveredNotified);    
   }
   }
   else{
+    $isFifteenDaysWhere = "AND (ISNULL(exxeNovedadFifteenDays) OR exxeNovedadFifteenDays = 0)";
+    if ($isFifteenDays) {
+      $isFifteenDaysWhere = "AND exxeNovedadFifteenDays = 1";
+    }
     //BUSCAMOS INFO BASICA DE PEDIDO POR EL ESTADO PASADO POR ARGS
     $ordersDelayed = "SELECT
     CONCAT('Pedido #', mpOrder, ' - guía: ', transportGuide, ' - ', customerFullName) as orderInfo
     FROM {$ordersInternTable}
     WHERE
-    colorNumber = {$colorNumber} AND 
-    sapStatus != '{$newStatus}'
+    colorNumber = {$colorNumber} AND
+    exxeError = 1 AND 
+    (ISNULL({$statusField}) OR {$statusField} = 0)
+    {$isFifteenDaysWhere}
     ";
     $resultsOrders = $wpdb->get_results($ordersDelayed, ARRAY_A);
 
@@ -1098,13 +1633,13 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
 
       // $to = "comprocafedecolombia@cafedecolombia.com";
       $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-      if ($colorNumber == 1) {
+      if (!$isFifteenDays) {
         $subject = "Pedidos con novedad";
         $messageInfo = "";
         $predicateInfo = "Por favor, recuerde validar con Exxe Logística el estado del pedido.";
       }else{
-        $subject = "Pedidos con novedad que llevan más de 15 días";
-        $messageInfo = " y llevan más de 15 días sin entregar";
+        $subject = "Pedidos con novedad que llevan más de 25 días";
+        $messageInfo = " y llevan más de 25 días sin entregar";
         $predicateInfo = "Por favor, recuerde ingresar a la página de administración y eliminar los pedidos si es necesario.";
       }
       $message = "Estos son los pedidos que tuvieron alguna novedad por parte de Exxe Logística{$messageInfo}. {$predicateInfo} \n {$ordersImploded} \n";
@@ -1116,9 +1651,10 @@ function sendEmailByOrderStatus($colorNumber, $newStatus){
         $ordersDelayedNotified = "UPDATE
         {$ordersInternTable}
         SET 
-        sapStatus = '{$newStatus}'
+        {$statusField} = 1
         WHERE
-        colorNumber = {$colorNumber}
+        colorNumber = {$colorNumber} AND
+        exxeError = 1
         ";
         $wpdb->query($ordersDelayedNotified);
       }
@@ -1286,12 +1822,9 @@ function getExxeStatusByTransportGuide($transportGuide){
   $guideStatusDate = $lastStatusInfo->FechaEstado;
 
   return [$guideStatus, $guideStatusDate];
-
 }
 
 //anadimos custom hook con funcion de cron y lo programamos
-
-
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
@@ -1299,6 +1832,15 @@ if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 1hora
   // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
+
+/*----------------------------------------------------------------------*/
+//CONFIGURACION DE CORREO ENTREGADO WOOCOMMERCE
+/* add_action( 'woocommerce_email_header', 'function_woocommerce_email_header', 20, 4 );
+function function_woocommerce_email_header( $order, $sent_to_admin, $plain_text, $email ) {
+    if ( $email->id == 'customer_completed_order' ) {
+        echo '<div class="woocommerce-info">woocommerce_email_header</div>';
+    }
+} */
 
 /*----------------------------------------------------------------------*/
 
