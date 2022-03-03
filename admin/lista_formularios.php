@@ -1312,7 +1312,7 @@ foreach ($resultCiudades as $key => $value) {
                     <td>$precio</td>
 					<td style='display: none;' class='orderContent' data-campo='direccion'>$direccion</td>
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
-					<td style='display: none;' class='orderContent' data-campo='correo'>$docnumber</td>
+					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docnumber</td>
 					<td style='display: none;' class='orderContent' data-campo='correo'>$correo</td>
 				    <td style='display: none;' class='orderContent' data-campo='departamento'>$departamento</td> 
 				    <td style='display: none;' class='orderContent' data-campo='exxeStatus'>$exxeStatus</td> 
@@ -1348,6 +1348,7 @@ foreach ($resultCiudades as $key => $value) {
 	  <ul>
 	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
 	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
+	  <li class="orderInfo" data-campo="docNumber">Valle del cauca</li>
 	  <li class="orderInfo" data-campo="ciudad">Cali</li>
 	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
 	  </ul>
