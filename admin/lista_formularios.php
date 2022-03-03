@@ -57,8 +57,8 @@ if (isset($_POST['busquedad'])){
             phoneNumber LIKE '%{$busqueda}%' OR 
             orderDate LIKE '%{$busqueda}%' OR 
             sapOrderDateShipped LIKE '%{$busqueda}%' OR 
-            totalPrice LIKE '%{$busqueda}%' OR 
-			docNumber LIKE '%{$busqueda}%' OR 
+            totalPrice LIKE '%{$busqueda}%' OR
+			totalPrice LIKE '%{$busqueda}%' OR 
             colorNumber LIKE '%{$busqueda}%')";
     }
 }
@@ -122,6 +122,9 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       orderW.sapOrderDateShipped,
       orderW.totalPrice,
       orderW.exxeStatus,
+	  orderW.exxeNovedadFifteenDays,
+	  orderW.exxeError,
+	  orderW.sapStatus,
 	  orderAddress,
 	  city,
 	  email,
@@ -176,7 +179,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       $delayedOrders = sizeof(getCardNumber(3));
       //Con novedades  :
       $novedadOrders = sizeof(getCardNumber(1));
-    
+ 
       //Entregados  :
       $deliveredOrders = sizeof(getCardNumber(5));
 	   //total
@@ -1054,7 +1057,68 @@ font-weight: bolder;
 .filter{
 	padding: 0px 5px;
 }
+.dang {background-color: #f35959}
+.prim {background-color: #0275d8}
+.succ {background-color: #5cb85c}
+.warning {background-color: #f0ad4e;}
+.bg-inactive {background-color:  #A9A9A9;}
 
+.statis .cardStyle{
+	position: relative;
+	padding: 15px;
+	overflow: hidden;
+	border-radius: 3px;
+	margin-bottom: 25px;
+	height: 100% !important;
+	width: 100% !important;
+	display: flex !important;
+	flex-direction: column !important;
+
+}
+.statis .cardStyle i {
+	position: absolute;
+	height: 70px;
+	width: 68px;
+	font-size: 20px;
+	padding: 15px;
+	top: -25px;
+	left: -25px;
+	background-color: rgba(255, 255, 255, 0.15) !important;
+	line-height: 60px;
+	text-align: right;
+	border-radius: 50%;
+	color: white;
+}
+.lead {
+	font-size: 17px;
+}
+
+.statis .cardStyle h3{
+	color:white;
+	font-size: 1.1rem;
+	font-weight: bold;
+}
+.statis .cardStyle p{
+	color:white;
+}
+
+.statis .cardStyle h3::after {
+	content: "";
+	height: 2px;
+	width: 70%;
+	margin: auto;
+	background-color: rgba(255, 255, 255, 0.12) !important;
+	display: block;
+	margin-top: 10px;
+}
+.btn-label {
+	position: relative;
+	left: -13px;
+	display: inline-block;
+	padding: 6px 12px;
+	background: rgba(0, 0, 0, 0.15);
+	border-radius: 3px 0 0 3px;
+}
   </style>
   
  
@@ -1283,9 +1347,10 @@ foreach ($resultCiudades as $key => $value) {
 					$correo = $value['email'];
 					$departamento = $value['department'];
 					$exxeStatus = $value['exxeStatus'];
-					$docnumber = $value['docNumber']
-
-
+					$exxeNovedadFifteenDays = $value['exxeNovedadFifteenDays'];
+	                $exxeError = $value['exxeError'];
+	                $sapStatus = $value['sapStatus'];
+					
 					$fondo = "";
 					if($status == 1){
 					$fondo = "linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);";
@@ -1312,11 +1377,14 @@ foreach ($resultCiudades as $key => $value) {
                     <td>$precio</td>
 					<td style='display: none;' class='orderContent' data-campo='direccion'>$direccion</td>
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
-					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docnumber</td>
 					<td style='display: none;' class='orderContent' data-campo='correo'>$correo</td>
 				    <td style='display: none;' class='orderContent' data-campo='departamento'>$departamento</td> 
 				    <td style='display: none;' class='orderContent' data-campo='exxeStatus'>$exxeStatus</td> 
 				    <td><div class='semaforo' data-colorValue='$status' style='background-image: $fondo;' ></td>
+					<td style='display: none;' class='Exx2' data-colorValue2='$exxeNovedadFifteenDays'  data-campo='exxeNovedadFifteenDays'></td> 
+				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'  class='orderContent' data-campo='exxeError'></td> 
+					<td style='display: none;'  class='sapE' data-SapError='$sapStatus' class='orderContent' data-campo='sapStatus'></td> 
+
                     </tr>";
                 }
                }
@@ -1336,19 +1404,44 @@ foreach ($resultCiudades as $key => $value) {
         <h5 class="modal-title" id="exampleModalLabel">
             <div class="d-flex justify-content-center align-items-center">
                 <span>Pedido #<bold data-campo="pedido" class="orderInfo orderCustomerNumber">71</bold></span> 
-                <div data-campo="exxeStatus" class="fs-6 orderInfo rounded ms-3 text-white p-2 bg-primary d-flex justify-content-center align-items-center">
-                    En Proceso
-                </div>  
+                <div class="modal-btnEnviar" style="display: none;">
+               <button type="button" class="btn btn-labeled btn-warning" style="padding: 0px; width:180px;" >
+                <span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>
+              </div>
             </div>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+	    <section class='statis text-center mt-3 mb-3'>
+         
+	    <div class="row d-flex">
+    <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
+     <div class="card-sap cardStyle"  style="background-color: white;">
+                            <i class="fa fa-random "></i>
+                            <h3>Estado SAP</h3>
+							<div class="h-100 d-flex justify-content-center">
+                            <p class="lead align-self-center">Tradado parcialmente</p>
+							</div>
+                        </div>
+    </div>
+    <div class="col-6 d-flex " style="padding: 0px 5px 0px 5px;">
+<div class="card-exxe cardStyle"  style="background-color: white;">
+                            <i class="fa fa-truck"></i>
+                            <h3>Estado de entrega</h3>
+							<div class="h-100 d-flex justify-content-center">
+                            <p class="lead align-self-center">No ha sido despachado</p>
+							</div>
+                        </div>
+    </div>
+
+
+  </div>
+  </section>
       <h4>Detalles de facturación</h3>
 	  <ul>
 	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
 	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-	  <li class="orderInfo" data-campo="docNumber">Valle del cauca</li>
 	  <li class="orderInfo" data-campo="ciudad">Cali</li>
 	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
 	  </ul>
@@ -1473,19 +1566,14 @@ inputPage.addEventListener("keypress", (e) => {
 //funcionalidad para ver info del pedido y productos en modal al abrirlo
 window.addEventListener("DOMContentLoaded", () => {
 
-	//HEADERS DE AUTHORIZATION GLOBALES
-	const myHeaders = new Headers();
-	if (document.domain === "fncsap.ingeniosoft.co") {
-	    myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
-	}else{
-	    //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
-	}
-
     //botones para abrir modal
     const openModalBtns = document.querySelectorAll(".openModalBtn");
     //FOOTER DEL MODAL
     const modalFooter = document.querySelector(".modal-footer");
+	const modalFooter2 = document.querySelector(".modal-btnEnviar");
     //BOTON PARA BORRAR
+	const cardExxe = document.querySelector(".card-exxe");
+    const cardSap = document.querySelector(".card-sap");
     const btnDeleteOrder = document.querySelector(".btnDeleteOrder");
     //tabla de productos
     const orderProductsTable = document.querySelector("#orderProductsTable");
@@ -1500,11 +1588,43 @@ window.addEventListener("DOMContentLoaded", () => {
             //extraemos color de semaforo
             let semaforoColor = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("style");
             let semaforoNumber = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("data-colorValue");
-            if (semaforoNumber == "1") {
+			let Exepedido = btn.parentElement.parentElement.querySelector(".Exx2").getAttribute("data-colorValue2");
+			let ExError = btn.parentElement.parentElement.querySelector(".ExxE").getAttribute("data-ExError");
+			let sapError = btn.parentElement.parentElement.querySelector(".sapE").getAttribute("data-SapError");
+			
+			
+			  if (Exepedido == "1") {
                 modalFooter.setAttribute("style", "display: block;");
             }else{
                 modalFooter.setAttribute("style", "display: none;");
             }
+                   
+		    if(semaforoNumber == "3") {
+                 modalFooter3.setAttribute("style", "background-color: yellow;");
+            }else{
+                 modalFooter3.setAttribute("style", "display: none;");
+            }
+			 
+			 if (ExError == "1" ) {
+                modalFooter3.setAttribute("style", "background-color: blue;");
+            }else{
+                modalFooter3.setAttribute("style", "display: none;");
+            }
+			
+			if (sapError == "NO RELEVANTE" && semaforoNumber == "1") {
+                modalFooter4.setAttribute("style", "background-color: red;");
+				modalFooter2.setAttribute("style", "display: block; padding-left: 5px;");
+            }else{
+                modalFooter4.setAttribute("style", "display: none;");
+				modalFooter2.setAttribute("style", "display: none;");
+            }
+		
+	   
+	
+		  
+			
+          
+			
             //recorremos celdas y colocamos su textcontent en el elemento correspondiente, el cual hace match con su atributo data-campo
             orderContentElements.forEach(td => {
                 let tdDataCampo = td.getAttribute("data-campo");
@@ -1528,6 +1648,12 @@ window.addEventListener("DOMContentLoaded", () => {
             })
 
             // Hacemos peticion a API para extraer productos del pedido
+            const myHeaders = new Headers();
+            if (document.domain === "fncsap.ingeniosoft.co") {
+                myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
+            }else{
+                //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
+            }
 
             const requestOptions = {
             method: 'GET',
@@ -1559,7 +1685,13 @@ window.addEventListener("DOMContentLoaded", () => {
         })
     })
     //FUNCIONALIDAD PARA BORRAR PEDIDO CUANDO ESTA EN ESTADO 2
-    btnDeleteOrder.addEventListener("click", () => {     
+    btnDeleteOrder.addEventListener("click", () => {
+        const myHeaders = new Headers();
+        if (document.domain === "fncsap.ingeniosoft.co") {
+            myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
+        }else{
+            //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
+        }
 
         const requestOptions = {
             method: 'POST',
