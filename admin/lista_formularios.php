@@ -59,6 +59,7 @@ if (isset($_POST['busquedad'])){
             sapOrderDateShipped LIKE '%{$busqueda}%' OR 
             totalPrice LIKE '%{$busqueda}%' OR
 			totalPrice LIKE '%{$busqueda}%' OR 
+			docNumber LIKE '%{$busqueda}%' OR 
             colorNumber LIKE '%{$busqueda}%')";
     }
 }
@@ -124,6 +125,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       orderW.exxeStatus,
 	  orderW.exxeNovedadFifteenDays,
 	  orderW.exxeError,
+	  orderW.docNumber,
 	  orderW.sapStatus,
 	  orderAddress,
 	  city,
@@ -1220,6 +1222,8 @@ font-weight: bolder;
     </div>
 
 </div>
+
+
 <div class="d-flex justify-content-between mb-3 mt-3">
     <form method="POST" class="form_search">
       <input type="text" name="busquedad" id="busquedad" placeholder="Buscar" style="line-height: 1.5;">
@@ -1350,6 +1354,7 @@ foreach ($resultCiudades as $key => $value) {
 					$exxeNovedadFifteenDays = $value['exxeNovedadFifteenDays'];
 	                $exxeError = $value['exxeError'];
 	                $sapStatus = $value['sapStatus'];
+					$docNumber = $value['docNumber'];
 					
 					$fondo = "";
 					if($status == 1){
@@ -1379,12 +1384,12 @@ foreach ($resultCiudades as $key => $value) {
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
 					<td style='display: none;' class='orderContent' data-campo='correo'>$correo</td>
 				    <td style='display: none;' class='orderContent' data-campo='departamento'>$departamento</td> 
-				    <td style='display: none;' class='orderContent' data-campo='exxeStatus'>$exxeStatus</td> 
+				    <td style='display: none;' class='orderContent exStatus' data-campo='exxeStatus'>$exxeStatus</td> 
 				    <td><div class='semaforo' data-colorValue='$status' style='background-image: $fondo;' ></td>
-					<td style='display: none;' class='Exx2' data-colorValue2='$exxeNovedadFifteenDays'  data-campo='exxeNovedadFifteenDays'></td> 
-				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'  class='orderContent' data-campo='exxeError'></td> 
-					<td style='display: none;'  class='sapE' data-SapError='$sapStatus' class='orderContent' data-campo='sapStatus'></td> 
-
+					<td style='display: none;' class='Exx2' data-colorValue2='$exxeNovedadFifteenDays'></td> 
+				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'></td> 
+					<td style='display: none;' class='sapE orderContent' data-SapStatus='$sapStatus' data-campo='sapStatus'>$sapStatus</td> 
+					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td> 
                     </tr>";
                 }
                }
@@ -1417,20 +1422,20 @@ foreach ($resultCiudades as $key => $value) {
          
 	    <div class="row d-flex">
     <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
-     <div class="card-sap cardStyle"  style="background-color: white;">
+     <div class="card-sap cardStyle"  style="background-color: blue;">
                             <i class="fa fa-random "></i>
                             <h3>Estado SAP</h3>
 							<div class="h-100 d-flex justify-content-center">
-                            <p class="lead align-self-center">Tradado parcialmente</p>
+                            <p class="lead align-self-center orderInfo " data-campo='sapStatus'>Tradado parcialmente</p>
 							</div>
                         </div>
     </div>
     <div class="col-6 d-flex " style="padding: 0px 5px 0px 5px;">
-<div class="card-exxe cardStyle"  style="background-color: white;">
+<div class="card-exxe cardStyle"  style="background-color: grey;">
                             <i class="fa fa-truck"></i>
                             <h3>Estado de entrega</h3>
 							<div class="h-100 d-flex justify-content-center">
-                            <p class="lead align-self-center">No ha sido despachado</p>
+                            <p class="lead align-self-center orderInfo" data-campo='exxeStatus'>No ha sido despachado</p>
 							</div>
                         </div>
     </div>
@@ -1444,16 +1449,22 @@ foreach ($resultCiudades as $key => $value) {
 	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
 	  <li class="orderInfo" data-campo="ciudad">Cali</li>
 	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
+	
+
 	  </ul>
         <div class="Card">
         <h5>Correo electronico</h4>
         <span class="orderInfo" data-campo="correo">infante1399@outlook.com</span>
         </div>
+		<div class="Card">
+        <h5>Número de documento</h4>
+		<span class="orderInfo" data-campo="docNumber">3232434</span>
+        </div>
         <div class="Card">
         <h5>Telefono</h4>
         <span class="orderInfo" data-campo="telefono">43456789</span>
         </div>
-	<table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
+<table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
     <thead>
 	<th>Producto</th>
     <th>Cantidad</th>
@@ -1467,6 +1478,7 @@ foreach ($resultCiudades as $key => $value) {
     </tr>
 	</tbody>
 </table>
+
       </div>
       <div class="modal-footer" style="display: none;">
         <button type="button" class="btnDeleteOrder btn btn-outline-danger">Eliminar Pedido</button>
@@ -1577,7 +1589,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const openModalBtns = document.querySelectorAll(".openModalBtn");
     //FOOTER DEL MODAL
     const modalFooter = document.querySelector(".modal-footer");
-	const modalFooter2 = document.querySelector(".modal-btnEnviar");
+	const btnEnviar = document.querySelector(".modal-btnEnviar");
     //BOTON PARA BORRAR
 	const cardExxe = document.querySelector(".card-exxe");
     const cardSap = document.querySelector(".card-sap");
@@ -1595,42 +1607,6 @@ window.addEventListener("DOMContentLoaded", () => {
             //extraemos color de semaforo
             let semaforoColor = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("style");
             let semaforoNumber = btn.parentElement.parentElement.querySelector(".semaforo").getAttribute("data-colorValue");
-			let Exepedido = btn.parentElement.parentElement.querySelector(".Exx2").getAttribute("data-colorValue2");
-			let ExError = btn.parentElement.parentElement.querySelector(".ExxE").getAttribute("data-ExError");
-			let sapError = btn.parentElement.parentElement.querySelector(".sapE").getAttribute("data-SapError");
-			
-			
-			  if (Exepedido == "1") {
-                modalFooter.setAttribute("style", "display: block;");
-            }else{
-                modalFooter.setAttribute("style", "display: none;");
-            }
-                   
-		    if(semaforoNumber == "3") {
-                 modalFooter3.setAttribute("style", "background-color: yellow;");
-            }else{
-                 modalFooter3.setAttribute("style", "display: none;");
-            }
-			 
-			 if (ExError == "1" ) {
-                modalFooter3.setAttribute("style", "background-color: blue;");
-            }else{
-                modalFooter3.setAttribute("style", "display: none;");
-            }
-			
-			if (sapError == "NO RELEVANTE" && semaforoNumber == "1") {
-                modalFooter4.setAttribute("style", "background-color: red;");
-				modalFooter2.setAttribute("style", "display: block; padding-left: 5px;");
-            }else{
-                modalFooter4.setAttribute("style", "display: none;");
-				modalFooter2.setAttribute("style", "display: none;");
-            }
-		
-	   
-	
-		  
-			
-          
 			
             //recorremos celdas y colocamos su textcontent en el elemento correspondiente, el cual hace match con su atributo data-campo
             orderContentElements.forEach(td => {
@@ -1646,15 +1622,47 @@ window.addEventListener("DOMContentLoaded", () => {
                     matchElement[1].textContent = tdTextSplit[1].trim(); 
                     orderNumber = tdTextSplit[0].trim();
                 }else{
-                    matchElement[0].textContent = td.textContent;
+					if(matchElement[0]){
+					matchElement[0].textContent = td.textContent;
+					}
                 }
-                //en caso de ser el elemento de status, colocar color de semaforo
-                if (matchElement[0]?.getAttribute("data-campo") === "exxeStatus") {
-                    matchElement[0].setAttribute("style", semaforoColor);
-                }
+           
             })
 
-           
+			let Exepedido = btn.parentElement.parentElement.querySelector(".Exx2").getAttribute("data-colorValue2");
+			let ExError = btn.parentElement.parentElement.querySelector(".ExxE").getAttribute("data-ExError");
+			let sapStatus = btn.parentElement.parentElement.querySelector(".sapE").getAttribute("data-SapStatus").toLowerCase();
+			let exxeStatuts = btn.parentElement.parentElement.querySelector(".exStatus").textContent;
+			
+			  if (Exepedido == "1") {
+                modalFooter.setAttribute("style", "display: block;");
+            }else{
+                modalFooter.setAttribute("style", "display: none;");
+            }
+			if(sapStatus == "despachado"){
+				cardSap.setAttribute("style", "background-color: green;");
+			}   
+		    if(semaforoNumber == "4") {
+                 if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
+					cardExxe.setAttribute("style", "background-color: grey;");
+					cardSap.setAttribute("style", "background-color: blue;");
+				 }else if(sapStatus == "despachado"){
+					cardExxe.setAttribute("style", "background-color: blue;");	
+				 }
+			}else if(semaforoNumber == "3") {
+             //Aqui va el codigo del tiempo retraso
+			 //El tiempo de retraso se calcula con el campo  con dias y horas sapOrderDateShipped
+			 cardExxe.setAttribute("style", "background-color: yellow;");
+            }else if(semaforoNumber == "1" ) {
+			if (ExError == "1") {
+				//Aqui va el codigo para la card de novedad NOVEDAD -> Tipo de novedad: () 
+				cardExxe.setAttribute("style", "background-color: red;");
+			}else{
+				//Aqui va el codigo cuando hay error por parte de sap petecion fecht sub mensajes de error
+				cardSap.setAttribute("style", "background-color: red;");
+				cardExxe.setAttribute("style", "background-color: grey;");
+			}
+            }
 
             const requestOptions = {
             method: 'GET',
@@ -1712,7 +1720,10 @@ window.addEventListener("DOMContentLoaded", () => {
             });
 
     })
+	 
 })
+
+
 
 </script>
 
