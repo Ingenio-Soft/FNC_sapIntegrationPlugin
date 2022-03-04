@@ -127,6 +127,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 	  orderW.exxeError,
 	  orderW.docNumber,
 	  orderW.sapStatus,
+	  orderW.sapOrderDateShipped,
 	  orderAddress,
 	  city,
 	  email,
@@ -1092,7 +1093,8 @@ font-weight: bolder;
 	color: white;
 }
 .lead {
-	font-size: 17px;
+	font-size: 16px;
+	font-weight: bold;
 }
 
 .statis .cardStyle h3{
@@ -1120,6 +1122,12 @@ font-weight: bolder;
 	padding: 6px 12px;
 	background: rgba(0, 0, 0, 0.15);
 	border-radius: 3px 0 0 3px;
+}
+.messageSap ul > li {
+	font-size: 16px;
+	font-weight: bold;
+	color: white;
+	padding: 5px 0px;
 }
   </style>
   
@@ -1355,6 +1363,7 @@ foreach ($resultCiudades as $key => $value) {
 	                $exxeError = $value['exxeError'];
 	                $sapStatus = $value['sapStatus'];
 					$docNumber = $value['docNumber'];
+					$sapOrderDateShipped = $value['sapOrderDateShipped'];
 					
 					$fondo = "";
 					if($status == 1){
@@ -1389,7 +1398,8 @@ foreach ($resultCiudades as $key => $value) {
 					<td style='display: none;' class='Exx2' data-colorValue2='$exxeNovedadFifteenDays'></td> 
 				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'></td> 
 					<td style='display: none;' class='sapE orderContent' data-SapStatus='$sapStatus' data-campo='sapStatus'>$sapStatus</td> 
-					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td> 
+					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td>
+					<td style='display: none;' class='OrderDate' data-orderDate='$sapOrderDateShipped'>$sapOrderDateShipped</td>
                     </tr>";
                 }
                }
@@ -1410,7 +1420,7 @@ foreach ($resultCiudades as $key => $value) {
             <div class="d-flex justify-content-center align-items-center">
                 <span>Pedido #<bold data-campo="pedido" class="orderInfo orderCustomerNumber">71</bold></span> 
                 <div class="modal-btnEnviar" style="display: none;">
-               <button type="button" class="btn btn-labeled btn-warning" style="padding: 0px; width:180px;" >
+               <button type="button" class="btn btn-labeled btn-warning btnReenviar" style="padding: 0px; width:180px;" >
                 <span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>
               </div>
             </div>
@@ -1422,10 +1432,21 @@ foreach ($resultCiudades as $key => $value) {
          
 	    <div class="row d-flex">
     <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
-     <div class="card-sap cardStyle"  style="background-color: blue;">
+     <div class="card-sap cardStyle"  style="background-color:  #3182ce;">
                             <i class="fa fa-random "></i>
                             <h3>Estado SAP</h3>
-							<div class="h-100 d-flex justify-content-center">
+							<div class="Novedad-card" style="display: none;">
+							<p class="lead align-self-center">Novedad</p>
+							<p class="lead align-self-center">Tipo de Novedad:</p>
+							<div class="messageSap">
+							<ul>
+							<li>xxdd</li>
+			                </li>xxdd</li>
+			               </ul>
+			               </div>
+			                </div>
+							<div class="h-100 d-flex justify-content-center flex-column">
+			   				
                             <p class="lead align-self-center orderInfo " data-campo='sapStatus'>Tradado parcialmente</p>
 							</div>
                         </div>
@@ -1434,8 +1455,18 @@ foreach ($resultCiudades as $key => $value) {
 <div class="card-exxe cardStyle"  style="background-color: grey;">
                             <i class="fa fa-truck"></i>
                             <h3>Estado de entrega</h3>
-							<div class="h-100 d-flex justify-content-center">
-                            <p class="lead align-self-center orderInfo" data-campo='exxeStatus'>No ha sido despachado</p>
+							
+							<div class="h-100 d-flex justify-content-center flex-column">
+							<div class="Novedad-card2" style="display: none;">
+							<p class="lead align-self-center">Novedad</p>
+							<p class="lead align-self-center">Tipo de Novedad:</p>
+			                </div>
+
+							<div class="divRetrasp" style="display: none;">
+							<p class="lead align-self-center">Retraso</p>
+							<p class="lead align-self-center">Tiempo de retraso:<br><span>15 a 20 dias</span></p>
+			                </div>
+							<p class="lead align-self-center orderInfo" data-campo='exxeStatus'>No ha sido despachado</p>
 							</div>
                         </div>
     </div>
@@ -1596,6 +1627,10 @@ window.addEventListener("DOMContentLoaded", () => {
     const btnDeleteOrder = document.querySelector(".btnDeleteOrder");
     //tabla de productos
     const orderProductsTable = document.querySelector("#orderProductsTable");
+	const btnReenviar = document.querySelector(".btnReenviar");
+	
+
+
     //elementos donde se mostrara la informacion
     const orderInfoElements = [...document.querySelectorAll(".orderInfo")];
     let orderNumber;
@@ -1633,7 +1668,12 @@ window.addEventListener("DOMContentLoaded", () => {
 			let ExError = btn.parentElement.parentElement.querySelector(".ExxE").getAttribute("data-ExError");
 			let sapStatus = btn.parentElement.parentElement.querySelector(".sapE").getAttribute("data-SapStatus").toLowerCase();
 			let exxeStatuts = btn.parentElement.parentElement.querySelector(".exStatus").textContent;
-			
+			let dateOrderSap = btn.parentElement.parentElement.querySelector(".OrderDate").getAttribute("data-orderDate");
+			const novedadModal = document.querySelector(".Novedad-card");
+			const novedadModalExe = document.querySelector(".Novedad-card2");
+			const RetrasodModal = document.querySelector(".divRetrasp");
+
+
 			  if (Exepedido == "1") {
                 modalFooter.setAttribute("style", "display: block;");
             }else{
@@ -1644,26 +1684,94 @@ window.addEventListener("DOMContentLoaded", () => {
 			}   
 		    if(semaforoNumber == "4") {
                  if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
-					cardExxe.setAttribute("style", "background-color: grey;");
-					cardSap.setAttribute("style", "background-color: blue;");
+					cardExxe.setAttribute("style", "background-color: #48bb78;");
+					cardSap.setAttribute("style", "background-color: #3182ce;");
 				 }else if(sapStatus == "despachado"){
-					cardExxe.setAttribute("style", "background-color: blue;");	
+					cardExxe.setAttribute("style", "background-color: #3182ce;");	
 				 }
 			}else if(semaforoNumber == "3") {
-             //Aqui va el codigo del tiempo retraso
+				RetrasodModal.setAttribute("style", "display: block;");
 			 //El tiempo de retraso se calcula con el campo  con dias y horas sapOrderDateShipped
-			 cardExxe.setAttribute("style", "background-color: yellow;");
-            }else if(semaforoNumber == "1" ) {
+			 cardExxe.setAttribute("style", "background-color: #dfae39;");
+
+            }else if(semaforoNumber == "1" ){
+				btnEnviar.setAttribute("style", "display: block; padding-left: 5px;");
+	btnReenviar.addEventListener("click", () => {
+
+const requestOptions = {
+	method: 'POST',
+	headers: myHeaders,
+};
+
+btnReenviar.classList.add("disabled")
+
+fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions)
+         
+	.then(response => response.json())
+	.then(result => {
+		if (result.result === true) {
+			btnReenviar.innerHTML = "Reenviar pedido";
+			btnReenviar.classList.remove("disabled");
+			alert("El pedido ha se reenviado correctamente");
+			window.location.reload();
+		}
+	})
+	.catch(error => {
+		btnReenviar.innerHTML = "Reenviar pedido";
+		btnReenviar.classList.remove("disabled");
+		alert("Hubo un error el reenviar el pedido");
+	});
+
+})
 			if (ExError == "1") {
-				//Aqui va el codigo para la card de novedad NOVEDAD -> Tipo de novedad: () 
-				cardExxe.setAttribute("style", "background-color: red;");
+				cardExxe.setAttribute("style", "background-color: #e53e3e;");
+				novedadModalExe.setAttribute("style", "display: block;");
+				
 			}else{
 				//Aqui va el codigo cuando hay error por parte de sap petecion fecht sub mensajes de error
-				cardSap.setAttribute("style", "background-color: red;");
+				cardSap.setAttribute("style", "background-color: #e53e3e;");
+				novedadModal.setAttribute("style", "display: block;");
+
 				cardExxe.setAttribute("style", "background-color: grey;");
+
+
+			const requestOptions = {
+            method: 'GET',
+            headers: myHeaders,
+            };
+			
+			const ulSap = document.querySelector(".messageSap");
+
+            const uL = ulSap.querySelector("ul");
+            uL.innerHTML = `
+            <li></li>
+			<li></li>
+            `;
+            let uLHTML = "";
+
+            fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/messages/${orderNumber}`, requestOptions)
+            .then(response => response.json())
+            .then(result => {
+                result?.messages.forEach(({message}) => {
+                    uLHTML += 
+					 `
+					<li>${message}</li>
+					`;
+                })
+                uL.innerHTML = uLHTML;
+            })
+
+
 			}
             }
-
+			if (semaforoNumber != "1" ) {
+				novedadModal.setAttribute("style", "display: none;");
+				novedadModalExe.setAttribute("style", "display: none;");
+				btnEnviar.setAttribute("style", "display: none;");
+			}
+			if (semaforoNumber != "3" ) {
+				RetrasodModal.setAttribute("style", "display: none;");
+			}
             const requestOptions = {
             method: 'GET',
             headers: myHeaders,
