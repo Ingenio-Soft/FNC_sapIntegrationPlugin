@@ -855,7 +855,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
       if ($update === false) {
         $data = array(
           "status" => "500",
-          "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio"
+          "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contactese con el administrador del sitio"
         );
         $statusCode = 500;
       }
@@ -875,7 +875,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         $data = array(
           "status" => "201",
           "pedido" => $mapOrder[0],
-          "message" => "Se actualizó correctamente el pedido."
+          "message" => "Se actualizo correctamente el pedido."
         );
         $statusCode = 201;
 
@@ -885,7 +885,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
   } catch (\Throwable $th) {
     $data = array(
       "status" => "500",
-      "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contáctese con el administrador del sitio. Info del error: {$th}", 
+      "message" => "Ocurrio un error al intentar actualizar el estado del pedido. Contactese con el administrador del sitio. Info del error: {$th}", 
     );
     $statusCode = 500;
   }
@@ -1201,6 +1201,16 @@ add_action( 'rest_api_init', function () {
       "sapStatus" => "Enviado",
       "colorNumber" => 4
     ), array("mpOrder" => $id) );
+    //RESETEAMOS MENSAJES DE ERROR
+    $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
+    $deleteMessagesQuery = "DELETE
+    FROM {$orderMessagesTableName}
+    WHERE
+    mpOrder = {$id}
+    ";
+
+    $wpdb->query($deleteMessagesQuery);
+
   }else{
     $data = array(
       "result" => false,
@@ -1382,7 +1392,7 @@ add_action( 'rest_api_init', function () {
     elseif (!in_array($status, $statusValues)) {
       $data = array(
         "status" => "400",
-        "message" => "El Status de pedido de SAP no es válido, debe ser uno de los siguientes: {$statusValueJoin}",
+        "message" => "El Status de pedido de SAP no es valido, debe ser uno de los siguientes: {$statusValueJoin}",
       );
       $statusCode = 400;
     }

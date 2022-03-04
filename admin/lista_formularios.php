@@ -82,7 +82,7 @@ if(isset($_POST["pagina"])){
 }
 
 //LIMITE POR PAGINA
-$por_pagina = floatval(5);
+$por_pagina = floatval(10);
 //CALCULO PARA EL OFFSET DEL QUERY
 $empieza = ($pagina-1)* $por_pagina;
 //HACEMOS SPLIT DEL VALUE FILTER PARA INCLUIRLO EN EL CONTADOR DE TODOS LOS PEDIDOS
@@ -1123,9 +1123,16 @@ font-weight: bolder;
 	background: rgba(0, 0, 0, 0.15);
 	border-radius: 3px 0 0 3px;
 }
+
+.messageSap ul{
+	list-style-type: circle;
+    list-style-position: inside;
+    text-align: left;
+}
+
+
 .messageSap ul > li {
-	font-size: 16px;
-	font-weight: bold;
+	font-size: 13px;
 	color: white;
 	padding: 5px 0px;
 }
@@ -1435,20 +1442,18 @@ foreach ($resultCiudades as $key => $value) {
      <div class="card-sap cardStyle"  style="background-color:  #3182ce;">
                             <i class="fa fa-random "></i>
                             <h3>Estado SAP</h3>
-							<div class="Novedad-card" style="display: none;">
-							<p class="lead align-self-center">Novedad</p>
-							<p class="lead align-self-center">Tipo de Novedad:</p>
-							<div class="messageSap">
-							<ul>
-							<li>xxdd</li>
-			                </li>xxdd</li>
-			               </ul>
-			               </div>
-			                </div>
 							<div class="h-100 d-flex justify-content-center flex-column">
-			   				
-                            <p class="lead align-self-center orderInfo " data-campo='sapStatus'>Tradado parcialmente</p>
+                            	<p class="lead align-self-center orderInfo " data-campo='sapStatus'>Tradado parcialmente</p>
 							</div>
+							<div class="Novedad-card" style="display: none;">
+							<p class="lead align-self-center">Mensajes de Error:</p>
+								<div class="messageSap">
+									<ul>
+										<li>Mensaje de error 1</li>
+										</li>Mensaje de error 2</li>
+									</ul>
+								</div>
+			                </div>
                         </div>
     </div>
     <div class="col-6 d-flex " style="padding: 0px 5px 0px 5px;">
@@ -1681,10 +1686,15 @@ window.addEventListener("DOMContentLoaded", () => {
             }
 			if(sapStatus == "despachado"){
 				cardSap.setAttribute("style", "background-color: green;");
+			}
+			if (exxeStatuts == "" || exxeStatuts == null) {
+				let exxeStatusElement = document.querySelector("p[data-campo='exxeStatus']");
+				exxeStatusElement.innerHTML = "Aún no ha sido despachado";
+				cardExxe.setAttribute("style", "background-color: grey;");
 			}   
 		    if(semaforoNumber == "4") {
                  if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
-					cardExxe.setAttribute("style", "background-color: #48bb78;");
+					cardExxe.setAttribute("style", "background-color: grey;");
 					cardSap.setAttribute("style", "background-color: #3182ce;");
 				 }else if(sapStatus == "despachado"){
 					cardExxe.setAttribute("style", "background-color: #3182ce;");	
@@ -1695,73 +1705,72 @@ window.addEventListener("DOMContentLoaded", () => {
 			 cardExxe.setAttribute("style", "background-color: #dfae39;");
 
             }else if(semaforoNumber == "1" ){
-				btnEnviar.setAttribute("style", "display: block; padding-left: 5px;");
-	btnReenviar.addEventListener("click", () => {
-
-const requestOptions = {
-	method: 'POST',
-	headers: myHeaders,
-};
-
-btnReenviar.classList.add("disabled")
-
-fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions)
-         
-	.then(response => response.json())
-	.then(result => {
-		if (result.result === true) {
-			btnReenviar.innerHTML = "Reenviar pedido";
-			btnReenviar.classList.remove("disabled");
-			alert("El pedido ha se reenviado correctamente");
-			window.location.reload();
-		}
-	})
-	.catch(error => {
-		btnReenviar.innerHTML = "Reenviar pedido";
-		btnReenviar.classList.remove("disabled");
-		alert("Hubo un error el reenviar el pedido");
-	});
-
-})
 			if (ExError == "1") {
 				cardExxe.setAttribute("style", "background-color: #e53e3e;");
 				novedadModalExe.setAttribute("style", "display: block;");
-				
 			}else{
-				//Aqui va el codigo cuando hay error por parte de sap petecion fecht sub mensajes de error
+				//FUNCIONALIDAD BOTON REENVIAR
+				btnEnviar.setAttribute("style", "display: block; padding-left: 5px;");
+				btnReenviar.addEventListener("click", () => {
+
+				const requestOptions = {
+					method: 'POST',
+					headers: myHeaders,
+				};
+
+				btnReenviar.classList.add("disabled")
+				btnReenviar.innerHTML = "<div class='loading'></div>";
+
+				fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions)
+						
+					.then(response => response.json())
+					.then(result => {
+						btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
+						btnReenviar.classList.remove("disabled");
+						if (result.result === true) {
+							alert("El pedido se ha reenviado correctamente");
+						}else{
+							alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
+						}
+						window.location.reload();
+					})
+					.catch(error => {
+						btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
+						btnReenviar.classList.remove("disabled");
+						alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
+					});
+
+				})
 				cardSap.setAttribute("style", "background-color: #e53e3e;");
 				novedadModal.setAttribute("style", "display: block;");
 
 				cardExxe.setAttribute("style", "background-color: grey;");
 
-
-			const requestOptions = {
-            method: 'GET',
-            headers: myHeaders,
-            };
+				//FUNCIONALIDAD MENSAJES DE ERROR
+				const requestOptions = {
+				method: 'GET',
+				headers: myHeaders,
+				};
 			
-			const ulSap = document.querySelector(".messageSap");
+				const ulSap = document.querySelector(".messageSap");
+				
+				const uL = ulSap.querySelector("ul");
+				uL.innerHTML = `
+				<div class="loading"></div>
+				`;
+				let uLHTML = "";
 
-            const uL = ulSap.querySelector("ul");
-            uL.innerHTML = `
-            <li></li>
-			<li></li>
-            `;
-            let uLHTML = "";
-
-            fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/messages/${orderNumber}`, requestOptions)
-            .then(response => response.json())
-            .then(result => {
-                result?.messages.forEach(({message}) => {
-                    uLHTML += 
-					 `
-					<li>${message}</li>
-					`;
-                })
-                uL.innerHTML = uLHTML;
-            })
-
-
+				fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/messages/${orderNumber}`, requestOptions)
+				.then(response => response.json())
+				.then(result => {
+					result?.messages.forEach(({message}) => {
+						uLHTML += 
+						`
+						<li>${message}</li>
+						`;
+					})
+					uL.innerHTML = uLHTML;
+				})
 			}
             }
 			if (semaforoNumber != "1" ) {
