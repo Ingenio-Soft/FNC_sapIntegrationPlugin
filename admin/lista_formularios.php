@@ -125,8 +125,8 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 	  orderW.exxeNovedadFifteenDays,
 	  orderW.exxeError,
 	  orderW.docNumber,
+	  orderW.sapOrderDateShipped,
 	  orderW.sapStatus,
-	  CONCAT(YEAR(orderW.sapOrderDateShipped), '-', MONTH(orderW.sapOrderDateShipped), '-', DAY(orderW.sapOrderDateShipped)) as fecha,
 	  orderAddress,
 	  city,
 	  email,
@@ -1393,7 +1393,7 @@ foreach ($resultCiudades as $key => $value) {
                     </td>
                     <td data-campo='telefono' class='orderContent' >$telefono</td>
                     <td>$fpedido</td>
-                    <td>$fenvio</td>
+                    <td class='OrderDate' data-orderDate='$fenvio'>$fenvio</td>
                     <td>$precio</td>
 					<td style='display: none;' class='orderContent' data-campo='direccion'>$direccion</td>
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
@@ -1405,7 +1405,6 @@ foreach ($resultCiudades as $key => $value) {
 				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'></td> 
 					<td style='display: none;' class='sapE orderContent' data-SapStatus='$sapStatus' data-campo='sapStatus'>$sapStatus</td> 
 					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td>
-					<td   class='OrderDate' data-orderDate='$sapOrderDateShipped'>$sapOrderDateShipped</td>
                     </tr>";
                 }
                }
@@ -1468,7 +1467,7 @@ foreach ($resultCiudades as $key => $value) {
 
 							<div class="divRetrasp" style="display: none;">
 							<p class="lead align-self-center">Retraso</p>
-							<p class="lead align-self-center">Tiempo de retraso:<br><span>15 a 20 dias</span></p>
+							<p class="lead align-self-center">Tiempo de retraso:<br><span class="delayTime">15 a 20 dias</span></p>
 			                </div>
 							<p class="lead align-self-center orderInfo" data-campo='exxeStatus'>No ha sido despachado</p>
 							</div>
@@ -1684,6 +1683,7 @@ window.addEventListener("DOMContentLoaded", () => {
 			let sapStatus = btn.parentElement.parentElement.querySelector(".sapE").getAttribute("data-SapStatus").toLowerCase();
 			let exxeStatuts = btn.parentElement.parentElement.querySelector(".exStatus").textContent;
 			let dateOrderSap = btn.parentElement.parentElement.querySelector(".OrderDate").getAttribute("data-orderDate");
+			const delayDateSpan = document.querySelector(".delayTime");
 			const novedadModal = document.querySelector(".Novedad-card");
 			const novedadModalExe = document.querySelector(".Novedad-card2");
 			const RetrasodModal = document.querySelector(".divRetrasp");
@@ -1710,31 +1710,20 @@ window.addEventListener("DOMContentLoaded", () => {
 					cardExxe.setAttribute("style", "background-color: #3182ce;");	
 				 }
 			}else if(semaforoNumber == "3") {
-				RetrasodModal.setAttribute("style", "display: block;");
-		
-
-
-			 var Fechaform = dateOrderSap.split(" ")[0].split("-").reverse().join("-");
-	          
-			var Fechaform = dateOrderSap.split(" ")[0].split("-").reverse().join("-");
-			let FechaSapMs  = new Date(Fechaform).getTime();
-			console.log(Fechaform);
-
-			function zero(n) {
-            return (n>9 ? '' : '0') + n;
+				RetrasodModal.setAttribute("style", "display: block;");	          
+				let Fechaform = dateOrderSap.split(" ")[0].split("-").join("-");
+				let FechaSapMs  = new Date(Fechaform).getTime();
+				function zero(n) {
+            	return (n>9 ? '' : '0') + n;
                   }
-            let date  = new Date();
-            let strDate = date.getFullYear() + "-" + zero((date.getMonth()+1)) + "-" + zero(date.getDate());
-			let FechaActualMs  = new Date(strDate).getTime();
-		
-		     console.log(strDate);
+            	let date  = new Date();
+            	let strDate = date.getFullYear() + "-" + zero((date.getMonth()+1)) + "-" + zero(date.getDate());
+				let FechaActualMs  = new Date(strDate).getTime();
+			 	let diff = FechaSapMs - FechaActualMs;
+			 	let dias = diff/(1000*60*60*24);
+				delayDateSpan.textContent = Math.floor(Math.abs(dias)) + " días";
 
-			 let diff = FechaSapMs - FechaActualMs;
-			 let dias = diff/(1000*60*60*24);
-             console.log(dias);
-			 
-
-			 cardExxe.setAttribute("style", "background-color: #dfae39;");
+			 	cardExxe.setAttribute("style", "background-color: #dfae39;");
 
             }else if(semaforoNumber == "1" ){
 			if (ExError == "1") {

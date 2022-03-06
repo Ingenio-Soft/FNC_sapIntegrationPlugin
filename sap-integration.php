@@ -548,7 +548,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
       else{
         $newSapStatus = "Despachado";
         date_default_timezone_set("America/Bogota");
-        $currentDate = date('m-d-Y h:i:s');       
+        $currentDate = date('Y-m-d h:i:s');       
         $update = $wpdb->update( 
           $ordersInternTable, 
           array(
@@ -1538,12 +1538,12 @@ function exxeCron(){
   sendEmailByOrderStatus(5, "sapErrorNotified");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 8 DIAS Y ESTEN EN COLOR VERDE
-  updateColorNumberIfTimePassed(4, 3, "colorNumber", 30, "SECOND");
-  // updateColorNumberIfTimePassed(4, 3, "colorNumber", 7, "DAY");
+  // updateColorNumberIfTimePassed(4, 3, "colorNumber", 30, "SECOND");
+  updateColorNumberIfTimePassed(4, 3, "colorNumber", 7, "DAY");
 
   //SE ACTUALIZAN TODOS LOS REGISTROS QUE TENGAN MAS DE 25 DIAS Y ESTEN EN COLOR ROJO
-  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND", true);
-  // updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 25, "DAY");
+  // updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 30, "SECOND", true);
+  updateColorNumberIfTimePassed(1, 1, "exxeNovedadFifteenDays", 25, "DAY");
 };
 
 function updateColorNumberIfTimePassed($currentColor, $newColor, $valueField,$timeValue, $timeParamDiff, $isExxeNotify = false){
@@ -1838,9 +1838,9 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
 
 /*----------------------------------------------------------------------*/
