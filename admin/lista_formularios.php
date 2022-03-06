@@ -120,14 +120,13 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       CONCAT('#', orderW.mpOrder, ' - ', orderW.customerFullName) as orderNumberName,
       orderW.phoneNumber,
       orderW.orderDate,
-      orderW.sapOrderDateShipped,
       orderW.totalPrice,
       orderW.exxeStatus,
 	  orderW.exxeNovedadFifteenDays,
 	  orderW.exxeError,
 	  orderW.docNumber,
 	  orderW.sapStatus,
-	  orderW.sapOrderDateShipped,
+	  CONCAT(YEAR(orderW.sapOrderDateShipped), '-', MONTH(orderW.sapOrderDateShipped), '-', DAY(orderW.sapOrderDateShipped)) as fecha,
 	  orderAddress,
 	  city,
 	  email,
@@ -1370,7 +1369,7 @@ foreach ($resultCiudades as $key => $value) {
 	                $exxeError = $value['exxeError'];
 	                $sapStatus = $value['sapStatus'];
 					$docNumber = $value['docNumber'];
-					$sapOrderDateShipped = $value['sapOrderDateShipped'];
+					$sapOrderDateShipped = $value['fecha'];
 					
 					$fondo = "";
 					if($status == 1){
@@ -1406,7 +1405,7 @@ foreach ($resultCiudades as $key => $value) {
 				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'></td> 
 					<td style='display: none;' class='sapE orderContent' data-SapStatus='$sapStatus' data-campo='sapStatus'>$sapStatus</td> 
 					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td>
-					<td style='display: none;' class='OrderDate' data-orderDate='$sapOrderDateShipped'>$sapOrderDateShipped</td>
+					<td   class='OrderDate' data-orderDate='$sapOrderDateShipped'>$sapOrderDateShipped</td>
                     </tr>";
                 }
                }
@@ -1485,8 +1484,19 @@ foreach ($resultCiudades as $key => $value) {
 	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
 	  <li class="orderInfo" data-campo="ciudad">Cali</li>
 	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-	
-
+	  <div class="col-sm-8">
+        <div class="card-block">
+          <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Information</h6>
+            <div class="row">
+                <div class="col-sm-6">
+                  <p class="m-b-10 f-w-600">Email</p>
+                     <h6 class="text-muted f-w-400">rntng@gmail.com</h6>
+                        </div>
+                     <div class="col-sm-6">
+                        <p class="m-b-10 f-w-600">Phone</p>
+                            <h6 class="text-muted f-w-400">98979989898</h6>
+                        </div>
+             </div>
 	  </ul>
         <div class="Card">
         <h5>Correo electronico</h4>
@@ -1701,7 +1711,29 @@ window.addEventListener("DOMContentLoaded", () => {
 				 }
 			}else if(semaforoNumber == "3") {
 				RetrasodModal.setAttribute("style", "display: block;");
-			 //El tiempo de retraso se calcula con el campo  con dias y horas sapOrderDateShipped
+		
+
+
+			 var Fechaform = dateOrderSap.split(" ")[0].split("-").reverse().join("-");
+	          
+			var Fechaform = dateOrderSap.split(" ")[0].split("-").reverse().join("-");
+			let FechaSapMs  = new Date(Fechaform).getTime();
+			console.log(Fechaform);
+
+			function zero(n) {
+            return (n>9 ? '' : '0') + n;
+                  }
+            let date  = new Date();
+            let strDate = date.getFullYear() + "-" + zero((date.getMonth()+1)) + "-" + zero(date.getDate());
+			let FechaActualMs  = new Date(strDate).getTime();
+		
+		     console.log(strDate);
+
+			 let diff = FechaSapMs - FechaActualMs;
+			 let dias = diff/(1000*60*60*24);
+             console.log(dias);
+			 
+
 			 cardExxe.setAttribute("style", "background-color: #dfae39;");
 
             }else if(semaforoNumber == "1" ){
