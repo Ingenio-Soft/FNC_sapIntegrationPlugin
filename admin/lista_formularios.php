@@ -1198,6 +1198,10 @@ font-weight: bolder;
 	overflow-wrap: break-word !important;
 }
 
+.modalcla{
+	max-width: 700px !important;
+}
+
   </style>
   
  
@@ -1480,8 +1484,8 @@ foreach ($resultCiudades as $key => $value) {
 			
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+<div class="modal fade " id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modalcla">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLabel">
@@ -1496,7 +1500,7 @@ foreach ($resultCiudades as $key => $value) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-	    <section class='statis text-center mt-3 mb-3'>
+	    <section class='statis text-center mb-2 mt-2'>
          
 	    <div class="row d-flex">
     <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
@@ -1540,32 +1544,45 @@ foreach ($resultCiudades as $key => $value) {
 
   </div>
   </section>
-  <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del pedido</h6>
-	  <ul>
-	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
-	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-	  <li class="orderInfo" data-campo="ciudad">Cali</li>
-	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-	  </ul>
-	  <div class="row">
-	  <div class="col-sm-12 mb-2">
-          <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h6>
-            <div class="row">
-                <div class="col-sm-6">
-                  <p class="m-b-10 f-w-600 text2">Correo Electronico</p>
-                     <h6 class="text-muted f-w-400 orderInfo" data-campo="correo" style="overflow-wrap: break-word;">rntng@gmail.com</h6>
-                        </div>
-                     <div class="col-sm-6 text2">
-                        <p class="m-b-10 f-w-600">Número de documento</p>
-                            <h6 class="text-muted f-w-400 orderInfo" data-campo="docNumber" style="overflow-wrap: break-word;">98979989898</h6>
-                        </div>
-						<div class="col-sm-12 text2">
-                        <p class="m-b-10 f-w-600">Telefono</p>
-                            <h6 class="text-muted orderInfo f-w-400" data-campo="telefono" style="overflow-wrap: break-word;">98979989898</h6>
-			</div>
-			</div>
-             </div>
-			</div>
+  <h5 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h5>
+  <table id="" class="table table-bordered">
+    <thead>
+	<th style="width: 25%;">Campo</th>
+    <th>Información</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Nombre</td>
+		<td class="orderInfo orderCustomerName" data-campo="pedido" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Dirección</td>
+		<td class="orderInfo " data-campo="direccion" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Ciudad</td>
+		<td class="orderInfo " data-campo="ciudad" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Departamento</td>
+		<td class="orderInfo " data-campo="departamento" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Correo Electrónico</td>
+		<td class="orderInfo " data-campo="correo" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Número de documento</td>
+		<td class="orderInfo " data-campo="docNumber" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Teléfono</td>
+		<td class="orderInfo " data-campo="telefono" >Tarjeta madre 2.0</td>
+    </tr>
+	</tbody>
+</table>
+	
+	
 <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
     <thead>
 	<th>Producto</th>
@@ -1590,7 +1607,7 @@ foreach ($resultCiudades as $key => $value) {
 </div>
 
 <div class="loadingGlobal" style="display: none; ">
-     <svg version="1.1" id="truck" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+     <svg version="1.1" id="truck" xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 370 225" enable-background="new 0 0 370 225" xml:space="preserve"  style="z-index:10;">
 <path id="wheel--front" d="M300,170c13.8,0,25,11.2,25,25s-11.2,25-25,25s-25-11.2-25-25S286.2,170,300,170z M285,195
 	c0,8.3,6.7,15,15,15s15-6.7,15-15s-6.7-15-15-15S285,186.7,285,195z"/>

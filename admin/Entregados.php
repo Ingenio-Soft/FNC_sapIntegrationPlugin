@@ -272,6 +272,10 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 .text2 > h6{
 	overflow-wrap: break-word !important;
 }
+
+.modalcla{
+	max-width: 700px !important;
+}
   </style>
 
 
@@ -387,7 +391,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 
 
   <!-- Modal -->
-  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal fade modalcla" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
