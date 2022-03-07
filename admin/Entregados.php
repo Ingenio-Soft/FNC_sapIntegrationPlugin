@@ -210,6 +210,68 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
     height: 100%;
     width: 100%;   
 }
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.card .card-block p {
+    line-height: 25px
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.text-muted {
+    color: #919aa3 !important
+}
+
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0
+}
+
+.f-w-600 {
+    font-weight: 600
+}
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+@media only screen and (min-width: 1400px) {
+    p {
+        font-size: 14px
+    }
+}
+.text2 > h6{
+	overflow-wrap: break-word !important;
+}
   </style>
 
 
@@ -338,22 +400,32 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <h4>Detalles de facturación</h3>
-            <ul>
-              <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
-              <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-              <li class="orderInfo" data-campo="ciudad">Cali</li>
-              <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-            </ul>
-            <div class="Card">
-              <h5>Correo electronico
-          </h4>
-          <span class="orderInfo" data-campo="correo">infante1399@outlook.com</span>
-        </div>
-        <div class="Card">
-          <h5>Telefono</h4>
-            <span class="orderInfo" data-campo="telefono">43456789</span>
-        </div>
+		<h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del pedido</h6>
+	  <ul>
+	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
+	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
+	  <li class="orderInfo" data-campo="ciudad">Cali</li>
+	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
+	  </ul>
+	  <div class="row">
+	  <div class="col-sm-12 mb-2">
+          <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h6>
+            <div class="row">
+                <div class="col-sm-6">
+                  <p class="m-b-10 f-w-600 text2">Correo Electronico</p>
+                     <h6 class="text-muted f-w-400 orderInfo" data-campo="correo" style="overflow-wrap: break-word;">rntng@gmail.com</h6>
+                        </div>
+                     <div class="col-sm-6 text2">
+                        <p class="m-b-10 f-w-600">Número de documento</p>
+                            <h6 class="text-muted f-w-400 orderInfo" data-campo="docNumber" style="overflow-wrap: break-word;">98979989898</h6>
+                        </div>
+						<div class="col-sm-12 text2">
+                        <p class="m-b-10 f-w-600">Telefono</p>
+                            <h6 class="text-muted orderInfo f-w-400" data-campo="telefono" style="overflow-wrap: break-word;">98979989898</h6>
+			</div>
+			</div>
+             </div>
+			</div>
         <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
           <thead>
             <th>Producto</th>
