@@ -1249,9 +1249,18 @@ add_action( 'rest_api_init', function () {
     $id = $request["id"];
 
     $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
-
     $ordersInternTable = "{$wpdb->prefix}sapwc_orders";
     $ordersProductsTable = "{$wpdb->prefix}sapwc_order_products";
+
+    $orderDeletedInfo = "SELECT
+    mpOrder as orderId,
+    transportGuide as guide,
+    sapOrderId as idSap
+    from {$ordersInternTable}
+    WHERE
+    mpOrder = {$id}
+    ";
+    $orderData = $wpdb->get_results($orderDeletedInfo, ARRAY_A);
 
     $deleteOrderProducts = "DELETE
     FROM {$ordersProductsTable}
@@ -1265,6 +1274,7 @@ add_action( 'rest_api_init', function () {
     mpOrder = {$id} AND
     exxeNovedadFifteenDays = 1
     ";
+
 
     $deleteResults = $wpdb->query($deleteOrder);
     $wpdb->query($deleteOrderProducts);
@@ -1280,6 +1290,12 @@ add_action( 'rest_api_init', function () {
     $emailer->subject = "Tu pedido No. {$id} ha sido reembolsado"; //Sujeto del correo
     $emailer->heading = "Pedido reembolsado No. {$id}"; //Título del contenido del correo
     $emailer->trigger($id);
+    //ENVIAMOS CORREO A SAP NOTIFICANDO EL PEDIDO REEMBOLSADO
+    $to = ["yeisong12ayeisondavidsuarezg12@gmail.com"];
+    // $to = ["cristian.beltran@almacafe.com.co", "luz.toro@almacafe.com.co"];
+    $subject = "Pedido #{$id} ha sido reembolsado desde el Marketplace";
+    $message = "Se ha reembolsado un pedido desde el marketplace, el cual tiene la siguiente información: \n Número de pedido en MarketPlace - {$orderData[0]['orderId']}\n Número de pedido en SAP - {$orderData[0]['idSap']} \n Número de guía de transporte - {$orderData[0]['guide']} \n\n Por favor, valide esta información para realizar el respectivo proceso con el pedido.";
+    wp_mail( $to, $subject, $message); 
     }else{
       $data = array("result" => false);
     }
@@ -1297,6 +1313,7 @@ add_action( 'rest_api_init', function () {
     $orderItemsQuery = "SELECT 
     or_prod.product_net_revenue as price, 
     or_prod.product_qty as quantity,
+    prod_info.sku as sku,
     prod_extra_info.order_item_name as productName
     FROM
     {$wpdb->prefix}wc_order_product_lookup as or_prod

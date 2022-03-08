@@ -119,6 +119,8 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       $mainQuery = "SELECT 
       CONCAT('#', orderW.mpOrder, ' - ', orderW.customerFullName) as orderNumberName,
       orderW.phoneNumber,
+      orderW.sapOrderId,
+      orderW.transportGuide,
       orderW.orderDate,
       orderW.totalPrice,
       orderW.exxeStatus,
@@ -1437,6 +1439,8 @@ foreach ($resultCiudades as $key => $value) {
 	                $sapStatus = $value['sapStatus'];
 					$docNumber = $value['docNumber'];
 					$sapOrderDateShipped = $value['fecha'];
+					$sapOrderId = $value['sapOrderId'];
+					$transportGuide = $value['transportGuide'];
 					
 					$fondo = "";
 					if($status == 1){
@@ -1472,6 +1476,8 @@ foreach ($resultCiudades as $key => $value) {
 				    <td style='display: none;' class='ExxE' data-ExError='$exxeError'></td> 
 					<td style='display: none;' class='sapE orderContent' data-SapStatus='$sapStatus' data-campo='sapStatus'>$sapStatus</td> 
 					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td>
+					<td style='display: none;' class='orderContent' data-campo='sapOrderId'>$sapOrderId</td>
+					<td style='display: none;' class='orderContent' data-campo='transportGuide'>$transportGuide</td>
                     </tr>";
                 }
                }
@@ -1544,6 +1550,27 @@ foreach ($resultCiudades as $key => $value) {
 
   </div>
   </section>
+  <h5 class="m-b-20 p-b-5 b-b-default f-w-600">Información del pedido</h5>
+  <table id="" class="table table-bordered">
+    <thead>
+	<th style="width: 25%;">Campo</th>
+    <th>Información</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Número de pedido</td>
+		<td class="orderInfo orderCustomerNumber" data-campo="orderNumber" >36584</td>
+    </tr>
+	<tr>
+        <td>Número de pedido en SAP</td>
+		<td class="orderInfo " data-campo="sapOrderId" >550498435</td>
+    </tr>
+	<tr>
+        <td>Número de Guía de Transporte</td>
+		<td class="orderInfo " data-campo="transportGuide" >114023759</td>
+    </tr>
+	</tbody>
+</table>
   <h5 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h5>
   <table id="" class="table table-bordered">
     <thead>
@@ -1586,12 +1613,14 @@ foreach ($resultCiudades as $key => $value) {
 <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
     <thead>
 	<th>Producto</th>
+	<th>SKU</th>
     <th>Cantidad</th>
     <th>Total</th>
     </thead>
 	<tbody>
     <tr>
         <td>Tarjeta madre 2.0</td>
+        <td>45983</td>
         <td>1</td>
         <td>$10.00</td>
     </tr>
@@ -1644,7 +1673,6 @@ cards.forEach(card => {
 		loadingGlobal.setAttribute("style", "display: flex; z-index:900;");
 		let page = card.getAttribute("data-page");
 		window.location.href = page;
-		
 	})
 })
 
@@ -1749,8 +1777,11 @@ window.addEventListener("DOMContentLoaded", () => {
 					matchElement[0].textContent = td.textContent;
 					}
                 }
-           
             })
+
+			//colocamos orderNumber en elemento de tabla
+			const orderNumberTd = document.querySelector("td[data-campo='orderNumber']");
+			orderNumberTd.textContent = orderNumber;
 
 			let Exepedido = btn.parentElement.parentElement.querySelector(".Exx2").getAttribute("data-colorValue2");
 			let ExError = btn.parentElement.parentElement.querySelector(".ExxE").getAttribute("data-ExError");
@@ -1884,7 +1915,8 @@ window.addEventListener("DOMContentLoaded", () => {
             const tbody = orderProductsTable.querySelector("tbody");
             tbody.innerHTML = `
             <td></td>
-            <td><div class='loading'></div></td>
+            <td style='transform: translateX(50%);'><div class='loading'></div></td>
+            <td></td>
             <td></td>
             `;
             let tbodyHTML = "";
@@ -1892,10 +1924,11 @@ window.addEventListener("DOMContentLoaded", () => {
             fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/products/${orderNumber}`, requestOptions)
             .then(response => response.json())
             .then(result => {
-                result?.products.forEach(({productName, quantity, price}) => {
+                result?.products.forEach(({productName, quantity, price, sku}) => {
                     tbodyHTML += 
                     ` <tr>
                         <td>${productName}</td>
+                        <td>${sku}</td>
                         <td>${quantity}</td>
                         <td>$${price}</td>
                     </tr>`;
