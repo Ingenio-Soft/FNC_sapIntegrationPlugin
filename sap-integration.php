@@ -471,7 +471,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
     if (sizeof($orderById) == 0) {
       $data = array(
         "status" => "404",
-        "message" => "No se ha encontrado pedido por el ID especificado en la petición."
+        "message" => "No se ha encontrado pedido por el ID especificado en la peticion."
       );
       $statusCode = 404;
     }else{
