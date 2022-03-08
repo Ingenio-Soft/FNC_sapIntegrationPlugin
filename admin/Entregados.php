@@ -391,8 +391,8 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 
 
   <!-- Modal -->
-  <div class="modal fade modalcla" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+  <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modalcla">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">
@@ -404,32 +404,42 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-		<h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del pedido</h6>
-	  <ul>
-	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
-	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-	  <li class="orderInfo" data-campo="ciudad">Cali</li>
-	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-	  </ul>
-	  <div class="row">
-	  <div class="col-sm-12 mb-2">
-          <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h6>
-            <div class="row">
-                <div class="col-sm-6">
-                  <p class="m-b-10 f-w-600 text2">Correo Electronico</p>
-                     <h6 class="text-muted f-w-400 orderInfo" data-campo="correo" style="overflow-wrap: break-word;">rntng@gmail.com</h6>
-                        </div>
-                     <div class="col-sm-6 text2">
-                        <p class="m-b-10 f-w-600">Número de documento</p>
-                            <h6 class="text-muted f-w-400 orderInfo" data-campo="docNumber" style="overflow-wrap: break-word;">98979989898</h6>
-                        </div>
-						<div class="col-sm-12 text2">
-                        <p class="m-b-10 f-w-600">Telefono</p>
-                            <h6 class="text-muted orderInfo f-w-400" data-campo="telefono" style="overflow-wrap: break-word;">98979989898</h6>
-			</div>
-			</div>
-             </div>
-			</div>
+	<table id="" class="table table-bordered">
+    <thead>
+	<th style="width: 25%;">Campo</th>
+    <th>Información</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Nombre</td>
+		<td class="orderInfo orderCustomerName" data-campo="pedido" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Dirección</td>
+		<td class="orderInfo " data-campo="direccion" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Ciudad</td>
+		<td class="orderInfo " data-campo="ciudad" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Departamento</td>
+		<td class="orderInfo " data-campo="departamento" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Correo Electrónico</td>
+		<td class="orderInfo " data-campo="correo" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Número de documento</td>
+		<td class="orderInfo " data-campo="docNumber" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Teléfono</td>
+		<td class="orderInfo " data-campo="telefono" >Tarjeta madre 2.0</td>
+    </tr>
+	</tbody>
+</table>
         <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
           <thead>
             <th>Producto</th>

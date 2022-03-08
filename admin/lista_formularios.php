@@ -1504,7 +1504,7 @@ foreach ($resultCiudades as $key => $value) {
          
 	    <div class="row d-flex">
     <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
-     <div class="card-sap cardStyle"  style="background-color:  #3182ce;">
+     <div class="card-sap cardStyle"  style="background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);">
                             <i class="fa fa-random "></i>
                             <h3>Estado SAP</h3>
 							<div class="h-100 d-flex justify-content-center flex-column">
@@ -1522,7 +1522,7 @@ foreach ($resultCiudades as $key => $value) {
                         </div>
     </div>
     <div class="col-6 d-flex " style="padding: 0px 5px 0px 5px;">
-<div class="card-exxe cardStyle"  style="background-color: grey;">
+<div class="card-exxe cardStyle"  style="background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);">
                             <i class="fa fa-truck"></i>
                             <h3>Estado de entrega</h3>
 							
@@ -1769,19 +1769,19 @@ window.addEventListener("DOMContentLoaded", () => {
                 modalFooter.setAttribute("style", "display: none;");
             }
 			if(sapStatus == "despachado"){
-				cardSap.setAttribute("style", "background-color: green;");
+				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #48bb78, #41c18d, #3ec7a2, #43ccb4, #4fd1c5);");
 			}
 			if (exxeStatuts == "" || exxeStatuts == null) {
 				let exxeStatusElement = document.querySelector("p[data-campo='exxeStatus']");
 				exxeStatusElement.innerHTML = "Aún no ha sido despachado";
-				cardExxe.setAttribute("style", "background-color: grey;");
+				cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 			}   
 		    if(semaforoNumber == "4") {
                  if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
-					cardExxe.setAttribute("style", "background-color: grey;");
-					cardSap.setAttribute("style", "background-color: #3182ce;");
+					cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
+					cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");
 				 }else if(sapStatus == "despachado"){
-					cardExxe.setAttribute("style", "background-color: #3182ce;");	
+					cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");	
 				 }
 			}else if(semaforoNumber == "3") {
 				RetrasodModal.setAttribute("style", "display: block;");	          
@@ -1797,11 +1797,11 @@ window.addEventListener("DOMContentLoaded", () => {
 			 	let dias = diff/(1000*60*60*24);
 				delayDateSpan.textContent = Math.floor(Math.abs(dias)) + " días";
 
-			 	cardExxe.setAttribute("style", "background-color: #dfae39;");
+			 	cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #d69e2e, #dfae39, #e7bf44, #efcf51, #f6e05e);");
 
             }else if(semaforoNumber == "1" ){
 			if (ExError == "1") {
-				cardExxe.setAttribute("style", "background-color: #e53e3e;");
+				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModalExe.setAttribute("style", "display: block;");
 			}else{
 				//FUNCIONALIDAD BOTON REENVIAR
@@ -1836,10 +1836,10 @@ window.addEventListener("DOMContentLoaded", () => {
 					});
 
 				})
-				cardSap.setAttribute("style", "background-color: #e53e3e;");
+				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModal.setAttribute("style", "display: block;");
 
-				cardExxe.setAttribute("style", "background-color: grey;");
+				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 
 				//FUNCIONALIDAD MENSAJES DE ERROR
 				const requestOptions = {
