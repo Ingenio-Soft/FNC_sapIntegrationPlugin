@@ -210,6 +210,72 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
     height: 100%;
     width: 100%;   
 }
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.card .card-block p {
+    line-height: 25px
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.text-muted {
+    color: #919aa3 !important
+}
+
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0
+}
+
+.f-w-600 {
+    font-weight: 600
+}
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+@media only screen and (min-width: 1400px) {
+    p {
+        font-size: 14px
+    }
+}
+.text2 > h6{
+	overflow-wrap: break-word !important;
+}
+
+.modalcla{
+	max-width: 700px !important;
+}
   </style>
 
 
@@ -326,7 +392,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 
   <!-- Modal -->
   <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modalcla">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">
@@ -338,22 +404,42 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <h4>Detalles de facturación</h3>
-            <ul>
-              <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
-              <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-              <li class="orderInfo" data-campo="ciudad">Cali</li>
-              <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-            </ul>
-            <div class="Card">
-              <h5>Correo electronico
-          </h4>
-          <span class="orderInfo" data-campo="correo">infante1399@outlook.com</span>
-        </div>
-        <div class="Card">
-          <h5>Telefono</h4>
-            <span class="orderInfo" data-campo="telefono">43456789</span>
-        </div>
+	<table id="" class="table table-bordered">
+    <thead>
+	<th style="width: 25%;">Campo</th>
+    <th>Información</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Nombre</td>
+		<td class="orderInfo orderCustomerName" data-campo="pedido" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Dirección</td>
+		<td class="orderInfo " data-campo="direccion" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Ciudad</td>
+		<td class="orderInfo " data-campo="ciudad" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Departamento</td>
+		<td class="orderInfo " data-campo="departamento" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Correo Electrónico</td>
+		<td class="orderInfo " data-campo="correo" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Número de documento</td>
+		<td class="orderInfo " data-campo="docNumber" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Teléfono</td>
+		<td class="orderInfo " data-campo="telefono" >Tarjeta madre 2.0</td>
+    </tr>
+	</tbody>
+</table>
         <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
           <thead>
             <th>Producto</th>

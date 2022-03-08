@@ -1135,6 +1135,73 @@ font-weight: bolder;
 	color: white;
 	padding: 5px 0px;
 }
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.card .card-block p {
+    line-height: 25px
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.text-muted {
+    color: #919aa3 !important
+}
+
+.b-b-default {
+    border-bottom: 1px solid #e0e0e0
+}
+
+.f-w-600 {
+    font-weight: 600
+}
+
+.m-b-20 {
+    margin-bottom: 20px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+.p-b-5 {
+    padding-bottom: 5px !important
+}
+
+.m-b-10 {
+    margin-bottom: 10px
+}
+
+.m-t-40 {
+    margin-top: 20px
+}
+
+@media only screen and (min-width: 1400px) {
+    p {
+        font-size: 14px
+    }
+}
+.text2 > h6{
+	overflow-wrap: break-word !important;
+}
+
+.modalcla{
+	max-width: 700px !important;
+}
+
   </style>
   
  
@@ -1417,8 +1484,8 @@ foreach ($resultCiudades as $key => $value) {
 			
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+<div class="modal fade " id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modalcla">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLabel">
@@ -1433,11 +1500,11 @@ foreach ($resultCiudades as $key => $value) {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-	    <section class='statis text-center mt-3 mb-3'>
+	    <section class='statis text-center mb-2 mt-2'>
          
 	    <div class="row d-flex">
     <div class="col-6 d-flex pl-5 pr-5 " style="padding: 0px 5px 0px 5px;" >
-     <div class="card-sap cardStyle"  style="background-color:  #3182ce;">
+     <div class="card-sap cardStyle"  style="background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);">
                             <i class="fa fa-random "></i>
                             <h3>Estado SAP</h3>
 							<div class="h-100 d-flex justify-content-center flex-column">
@@ -1455,7 +1522,7 @@ foreach ($resultCiudades as $key => $value) {
                         </div>
     </div>
     <div class="col-6 d-flex " style="padding: 0px 5px 0px 5px;">
-<div class="card-exxe cardStyle"  style="background-color: grey;">
+<div class="card-exxe cardStyle"  style="background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);">
                             <i class="fa fa-truck"></i>
                             <h3>Estado de entrega</h3>
 							
@@ -1477,38 +1544,45 @@ foreach ($resultCiudades as $key => $value) {
 
   </div>
   </section>
-      <h4>Detalles de facturación</h3>
-	  <ul>
-	  <li class="orderInfo orderCustomerName" data-campo="pedido">Velez Serna</li>
-	  <li class="orderInfo" data-campo="direccion">Cra12#323-1b4</li>
-	  <li class="orderInfo" data-campo="ciudad">Cali</li>
-	  <li class="orderInfo" data-campo="departamento">Valle del cauca</li>
-	  <div class="col-sm-8">
-        <div class="card-block">
-          <h6 class="m-b-20 p-b-5 b-b-default f-w-600">Information</h6>
-            <div class="row">
-                <div class="col-sm-6">
-                  <p class="m-b-10 f-w-600">Email</p>
-                     <h6 class="text-muted f-w-400">rntng@gmail.com</h6>
-                        </div>
-                     <div class="col-sm-6">
-                        <p class="m-b-10 f-w-600">Phone</p>
-                            <h6 class="text-muted f-w-400">98979989898</h6>
-                        </div>
-             </div>
-	  </ul>
-        <div class="Card">
-        <h5>Correo electronico</h4>
-        <span class="orderInfo" data-campo="correo">infante1399@outlook.com</span>
-        </div>
-		<div class="Card">
-        <h5>Número de documento</h4>
-		<span class="orderInfo" data-campo="docNumber">3232434</span>
-        </div>
-        <div class="Card">
-        <h5>Telefono</h4>
-        <span class="orderInfo" data-campo="telefono">43456789</span>
-        </div>
+  <h5 class="m-b-20 p-b-5 b-b-default f-w-600">Información del cliente</h5>
+  <table id="" class="table table-bordered">
+    <thead>
+	<th style="width: 25%;">Campo</th>
+    <th>Información</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Nombre</td>
+		<td class="orderInfo orderCustomerName" data-campo="pedido" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Dirección</td>
+		<td class="orderInfo " data-campo="direccion" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Ciudad</td>
+		<td class="orderInfo " data-campo="ciudad" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Departamento</td>
+		<td class="orderInfo " data-campo="departamento" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Correo Electrónico</td>
+		<td class="orderInfo " data-campo="correo" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Número de documento</td>
+		<td class="orderInfo " data-campo="docNumber" >Tarjeta madre 2.0</td>
+    </tr>
+	<tr>
+        <td>Teléfono</td>
+		<td class="orderInfo " data-campo="telefono" >Tarjeta madre 2.0</td>
+    </tr>
+	</tbody>
+</table>
+	
+	
 <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
     <thead>
 	<th>Producto</th>
@@ -1533,7 +1607,7 @@ foreach ($resultCiudades as $key => $value) {
 </div>
 
 <div class="loadingGlobal" style="display: none; ">
-     <svg version="1.1" id="truck" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+     <svg version="1.1" id="truck" xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 370 225" enable-background="new 0 0 370 225" xml:space="preserve"  style="z-index:10;">
 <path id="wheel--front" d="M300,170c13.8,0,25,11.2,25,25s-11.2,25-25,25s-25-11.2-25-25S286.2,170,300,170z M285,195
 	c0,8.3,6.7,15,15,15s15-6.7,15-15s-6.7-15-15-15S285,186.7,285,195z"/>
@@ -1695,19 +1769,19 @@ window.addEventListener("DOMContentLoaded", () => {
                 modalFooter.setAttribute("style", "display: none;");
             }
 			if(sapStatus == "despachado"){
-				cardSap.setAttribute("style", "background-color: green;");
+				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #48bb78, #41c18d, #3ec7a2, #43ccb4, #4fd1c5);");
 			}
 			if (exxeStatuts == "" || exxeStatuts == null) {
 				let exxeStatusElement = document.querySelector("p[data-campo='exxeStatus']");
 				exxeStatusElement.innerHTML = "Aún no ha sido despachado";
-				cardExxe.setAttribute("style", "background-color: grey;");
+				cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 			}   
 		    if(semaforoNumber == "4") {
                  if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
-					cardExxe.setAttribute("style", "background-color: grey;");
-					cardSap.setAttribute("style", "background-color: #3182ce;");
+					cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
+					cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");
 				 }else if(sapStatus == "despachado"){
-					cardExxe.setAttribute("style", "background-color: #3182ce;");	
+					cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");	
 				 }
 			}else if(semaforoNumber == "3") {
 				RetrasodModal.setAttribute("style", "display: block;");	          
@@ -1723,11 +1797,11 @@ window.addEventListener("DOMContentLoaded", () => {
 			 	let dias = diff/(1000*60*60*24);
 				delayDateSpan.textContent = Math.floor(Math.abs(dias)) + " días";
 
-			 	cardExxe.setAttribute("style", "background-color: #dfae39;");
+			 	cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #d69e2e, #dfae39, #e7bf44, #efcf51, #f6e05e);");
 
             }else if(semaforoNumber == "1" ){
 			if (ExError == "1") {
-				cardExxe.setAttribute("style", "background-color: #e53e3e;");
+				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModalExe.setAttribute("style", "display: block;");
 			}else{
 				//FUNCIONALIDAD BOTON REENVIAR
@@ -1762,10 +1836,10 @@ window.addEventListener("DOMContentLoaded", () => {
 					});
 
 				})
-				cardSap.setAttribute("style", "background-color: #e53e3e;");
+				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModal.setAttribute("style", "display: block;");
 
-				cardExxe.setAttribute("style", "background-color: grey;");
+				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 
 				//FUNCIONALIDAD MENSAJES DE ERROR
 				const requestOptions = {
