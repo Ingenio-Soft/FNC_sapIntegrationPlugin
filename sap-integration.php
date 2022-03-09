@@ -1392,7 +1392,7 @@ add_action( 'rest_api_init', function () {
     $messages = $request["messages"];
     $statusValues = ["No relevante", "A", "B", "C"];
     $statusValueJoin = implode(", ", $statusValues);
-    if ($sapOrderId == null || $sapOrderId == "" || $sapOrderId == undefined) {
+    if ($status !== "No relevante" && ($sapOrderId == null || $sapOrderId == "" || $sapOrderId == undefined)) {
       $data = array(
         "status" => "400",
         "message" => "El ID de entrega del pedido de SAP debe ser enviado obligatoriamente.",
