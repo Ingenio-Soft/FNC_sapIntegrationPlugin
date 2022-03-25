@@ -1407,7 +1407,7 @@ foreach ($resultCiudades as $key => $value) {
 					<th>Telefono</th>
 					<th>Fecha pedido</th>
                     <th>Fecha Envio</th>
-					<th>Total</th>
+					<th>Total + Envío</th>
 					<th>Estado</th>		
                 </thead>
                 <tbody id="the-list">
@@ -1427,7 +1427,7 @@ foreach ($resultCiudades as $key => $value) {
                     $telefono = $value['phoneNumber'];
                     $fpedido = $value['orderDate'];
                     $fenvio = $value['sapOrderDateShipped'];
-                    $precio = $value['totalPrice'];
+                    $precio = "$" . number_format($value['totalPrice'], 2);
 					$status = $value['colorNumber'];
 					$direccion = $value['orderAddress'];
 					$ciudad = $value['city'];
@@ -1614,8 +1614,8 @@ foreach ($resultCiudades as $key => $value) {
     <thead>
 	<th>Producto</th>
 	<th>SKU</th>
-    <th>Cantidad</th>
-    <th>Total</th>
+    <th>Unidades del producto</th>
+    <th>Total valor productos</th>
     </thead>
 	<tbody>
     <tr>
@@ -1835,6 +1835,7 @@ window.addEventListener("DOMContentLoaded", () => {
 				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModalExe.setAttribute("style", "display: block;");
 			}else{
+				novedadModalExe.setAttribute("style", "display: none;");
 				//FUNCIONALIDAD BOTON REENVIAR
 				btnEnviar.setAttribute("style", "display: block; padding-left: 5px;");
 				btnReenviar.addEventListener("click", () => {
