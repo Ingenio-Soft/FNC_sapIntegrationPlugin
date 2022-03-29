@@ -563,6 +563,7 @@ window.addEventListener("DOMContentLoaded", () => {
                 myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
             }else{
                 //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
+                myHeaders.append("Authorization", "Basic dXNlclNBUDp3WUpkIDFWekggSnBQbyBRaFRBIDUxeW0gaXRITA==");                
             }
 
             const requestOptions = {

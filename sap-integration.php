@@ -184,19 +184,29 @@ function estructureAndInsertOrderInfo($id){
 
   $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
   $codigoDepartment = 0;
+  $codigoMunicipio = 0;
 	foreach ($shipments as $key => $value) {
 		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
 		{
 			$codigoDepartment = $value['CODDEPARTAMENTO'];
+			$codigoMunicipio = $value['CODMUNICIPIO'];
 		}
 	};
+
+  $nameCity = "";
+  $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
+  foreach ($cities as $key => $value) {
+    if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
+      $nameCity = $value["municipio"];
+    }
+  }
 
   $orderForRequestBody = array(
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['shipping']['address_1'],
-      "city" => strtoupper($order_data['shipping']['city']),
+      "city" => $nameCity,
       "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
@@ -277,7 +287,7 @@ function estructureAndInsertOrderInfo($id){
   //HACEMOS PETICION AL LOGIN
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -320,7 +330,7 @@ function estructureAndInsertOrderInfo($id){
 
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -350,7 +360,21 @@ function estructureAndInsertOrderInfo($id){
       ),
       array('mpOrder'=>$id)
     );
-  } 
+  }else{
+    $wpdb->update(
+      $ordersTableName, 
+      array(
+        'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
+        'colorNumber'=> 1,
+      ),
+      array('mpOrder'=>$id)
+    );
+    $to = "comprocafedecolombia@cafedecolombia.com";
+    // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+    $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
+    $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, por lo cual se requiere reenviar el pedido. Contáctese con el administrador de servidor SAP para más detalles sobre el inconveniente.";
+    wp_mail( $to, $subject, $message);
+  }
 
 
   return  $orderForRequestBody;
@@ -533,8 +557,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
               }
             }
             if ($newSapStatus["color"] == 1) {
-              // $to = "comprocafedecolombia@cafedecolombia.com";
-              $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+              $to = "comprocafedecolombia@cafedecolombia.com";
+              // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
               $subject = "Pedido #{$orderById[0]["mpOrder"]} contiene errores por parte de SAP";
               $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido evaluado por SAP y se ha determinado que contiene errores. Por favor, realice las respectivas correcciones para reenviar el pedido.";
 
@@ -559,8 +583,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
-        // $to = "comprocafedecolombia@cafedecolombia.com";
-        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $to = "comprocafedecolombia@cafedecolombia.com";
+        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderById[0]["mpOrder"]} despachado";
         $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido despachado.";
 
@@ -1127,7 +1151,7 @@ add_action( 'rest_api_init', function () {
   //HACEMOS PETICION AL LOGIN
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -1170,7 +1194,7 @@ add_action( 'rest_api_init', function () {
 
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -1658,8 +1682,8 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
       $ordersImploded = implode("\n", $ordersDelayedArrayInfo);
       //ENVIAMOS CORREO CON MENSAJE INFORMATIVO DE PEDIDOS CON MAS DE 15 DIAS EN ROJO
 
-      // $to = "comprocafedecolombia@cafedecolombia.com";
-      $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+      $to = "comprocafedecolombia@cafedecolombia.com";
+      // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
       if (!$isFifteenDays) {
         $subject = "Pedidos con novedad";
         $messageInfo = "";

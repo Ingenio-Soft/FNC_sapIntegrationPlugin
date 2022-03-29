@@ -1731,6 +1731,7 @@ window.addEventListener("DOMContentLoaded", () => {
                 myHeaders.append("Authorization", "Basic dXNlclNBUDpIcllsIFpXWFggakc0VCBPYzNoIG95WDcgRE5RYgo=");                
             }else{
                 //AQUI VA EL HEADER DE AUTHORIZATION PARA INSTALAR EN PRODUCTIVO
+                myHeaders.append("Authorization", "Basic dXNlclNBUDp3WUpkIDFWekggSnBQbyBRaFRBIDUxeW0gaXRITA==");                
             }
     //botones para abrir modal
     const openModalBtns = document.querySelectorAll(".openModalBtn");
@@ -1800,6 +1801,7 @@ window.addEventListener("DOMContentLoaded", () => {
                 modalFooter.setAttribute("style", "display: none;");
             }
 			if(sapStatus == "despachado"){
+				novedadModal.setAttribute("style", "display: none;");
 				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #48bb78, #41c18d, #3ec7a2, #43ccb4, #4fd1c5);");
 			}
 			if (exxeStatuts == "" || exxeStatuts == null) {
@@ -1808,6 +1810,7 @@ window.addEventListener("DOMContentLoaded", () => {
 				cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 			}   
 		    if(semaforoNumber == "4") {
+				novedadModal.setAttribute("style", "display: none;");
                  if((exxeStatuts == "" || exxeStatuts == null) && sapStatus != "despachado" ){
 					cardExxe.setAttribute("style", " background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 					cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");
@@ -1815,6 +1818,7 @@ window.addEventListener("DOMContentLoaded", () => {
 					cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #3182ce, #3d8ed6, #499ade, #56a7e6, #63b3ed);");	
 				 }
 			}else if(semaforoNumber == "3") {
+				novedadModal.setAttribute("style", "display: none;");
 				RetrasodModal.setAttribute("style", "display: block;");	          
 				let Fechaform = dateOrderSap.split(" ")[0].split("-").join("-");
 				let FechaSapMs  = new Date(Fechaform).getTime();
@@ -1869,7 +1873,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
 				})
 				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
-				novedadModal.setAttribute("style", "display: block;");
+				if (sapStatus == "no se pudo enviar pedido a sap. por favor, reenvíe el pedido.") {
+					novedadModal.setAttribute("style", "display: none;");
+				}else{
+					novedadModal.setAttribute("style", "display: block;");
+				}
+
 
 				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #d1d1d1, #d8d8d8, #dfdfdf, #e7e7e7, #eeeeee);");
 
