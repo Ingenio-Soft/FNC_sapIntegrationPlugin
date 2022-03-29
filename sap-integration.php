@@ -206,7 +206,7 @@ function estructureAndInsertOrderInfo($id){
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['shipping']['address_1'],
-      "city" => $nameCity,
+      "city" => strtoupper($nameCity),
       "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
@@ -1113,19 +1113,29 @@ add_action( 'rest_api_init', function () {
   $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
   $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
   $codigoDepartment = 0;
+  $codigoMunicipio = 0;
 	foreach ($shipments as $key => $value) {
 		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
 		{
 			$codigoDepartment = $value['CODDEPARTAMENTO'];
+			$codigoMunicipio = $value['CODMUNICIPIO'];
 		}
 	};
+
+  $nameCity = "";
+  $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
+  foreach ($cities as $key => $value) {
+    if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
+      $nameCity = $value["municipio"];
+    }
+  }
 
   $orderForRequestBody = array(
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['shipping']['address_1'],
-      "city" => strtoupper($order_data['shipping']['city']),
+      "city" => strtoupper($nameCity),
       "department" => $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
