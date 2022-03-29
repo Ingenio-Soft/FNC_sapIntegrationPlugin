@@ -206,8 +206,8 @@ function estructureAndInsertOrderInfo($id){
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['shipping']['address_1'],
-      "city" => strtoupper($nameCity),
-      "department" => $codigoDepartment,
+      "city" => mb_strtoupper($nameCity, "utf-8"),
+      "department" => mb_strtoupper($nameCity, "utf-8") == "BOGOTÁ D.C." ? "11" : $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
     ),
@@ -287,7 +287,7 @@ function estructureAndInsertOrderInfo($id){
   //HACEMOS PETICION AL LOGIN
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -330,7 +330,7 @@ function estructureAndInsertOrderInfo($id){
 
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -1135,8 +1135,8 @@ add_action( 'rest_api_init', function () {
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
       "address" => $order_data['shipping']['address_1'],
-      "city" => strtoupper($nameCity),
-      "department" => $codigoDepartment,
+      "city" => mb_strtoupper($nameCity, "utf-8"),
+      "department" => mb_strtoupper($nameCity, "utf-8") == "BOGOTÁ D.C." ? "11" : $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
       "email" => $order_data['billing']['email'],
     ),
@@ -1161,7 +1161,7 @@ add_action( 'rest_api_init', function () {
   //HACEMOS PETICION AL LOGIN
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
@@ -1204,7 +1204,7 @@ add_action( 'rest_api_init', function () {
 
   $curl = curl_init();
   curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+    CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_ENCODING => '',
     CURLOPT_MAXREDIRS => 10,
