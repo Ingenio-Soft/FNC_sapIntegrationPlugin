@@ -166,7 +166,9 @@ function estructureAndInsertOrderInfo($id){
   FROM
   {$wpdb->prefix}wc_order_product_lookup as or_prod
   INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-  ON or_prod.product_id = prod_info.product_id
+  ON IF(or_prod.variation_id != 0, 
+      or_prod.variation_id = prod_info.product_id, 
+      or_prod.product_id = prod_info.product_id)
   INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
   ON or_prod.order_item_id = prod_extra_info.order_item_id
   INNER JOIN {$orderProductsMetaTableName} as orderPL
@@ -273,107 +275,106 @@ function estructureAndInsertOrderInfo($id){
     foreach ($estructuredOrderProducts as $key) {  
       $wpdb->insert($orderProductsTableName, $key);
     }
-  }
+        //CREDENCIALES PARA LOGIN SAP:
+      $sapCredentialsLogin = array(
+        "user" => "mkpfncuat",
+        "password" => "3TuC3Lh7FT9vtuD5",
+      );
 
-  //CREDENCIALES PARA LOGIN SAP:
-  $sapCredentialsLogin = array(
-    "user" => "mkpfncuat",
-    "password" => "3TuC3Lh7FT9vtuD5",
-  );
-
-  $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
+      $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
 
-  //HACEMOS PETICION AL LOGIN
-  $curl = curl_init();
-  curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_ENCODING => '',
-    CURLOPT_MAXREDIRS => 10,
-    CURLOPT_TIMEOUT => 0,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    CURLOPT_CUSTOMREQUEST => 'POST',
-    CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
-    CURLOPT_HTTPHEADER => array(
-      'Content-Type: application/json'
-    ),
-  ));
-  $response = curl_exec($curl);
-  curl_close($curl);
-  $responseJSON = json_decode($response, true);
+      //HACEMOS PETICION AL LOGIN
+      $curl = curl_init();
+      curl_setopt_array($curl, array(
+        CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
+        CURLOPT_HTTPHEADER => array(
+          'Content-Type: application/json'
+        ),
+      ));
+      $response = curl_exec($curl);
+      curl_close($curl);
+      $responseJSON = json_decode($response, true);
 
 
-  $tokenJSON = 'token: ' . $responseJSON["token"];
+      $tokenJSON = 'token: ' . $responseJSON["token"];
 
-  //HACEMOS PETICION PARA ENVIAR PEDIDO
+      //HACEMOS PETICION PARA ENVIAR PEDIDO
 
-  date_default_timezone_set("America/Bogota");
-  $currentDate = date('YmdHis');
+      date_default_timezone_set("America/Bogota");
+      $currentDate = date('YmdHis');
 
-  $requestHeaderInfo = array(
-      "client" => "marketplace",
-      "ipAdress" => $_SERVER["REMOTE_ADDR"],
-      "userName" => "mpfncuat",
-      "sessionID" => $currentDate,
-      "requestID" => $currentDate,
-      "activeRecord" => 1,
-    );
+      $requestHeaderInfo = array(
+          "client" => "marketplace",
+          "ipAdress" => $_SERVER["REMOTE_ADDR"],
+          "userName" => "mpfncuat",
+          "sessionID" => $currentDate,
+          "requestID" => $currentDate,
+          "activeRecord" => 1,
+        );
 
-  $requestHeaderAndBodyData = array(
-    "requestHeader" => $requestHeaderInfo,
-    "requestBody" => $orderForRequestBody
-  );
+      $requestHeaderAndBodyData = array(
+        "requestHeader" => $requestHeaderInfo,
+        "requestBody" => $orderForRequestBody
+      );
 
-  $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
+      $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
 
-  $curl = curl_init();
-  curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_ENCODING => '',
-    CURLOPT_MAXREDIRS => 10,
-    CURLOPT_TIMEOUT => 0,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    CURLOPT_CUSTOMREQUEST => 'POST',
-    CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
-    CURLOPT_HTTPHEADER => array(
-      $tokenJSON,
-      'Content-Type: application/json'
-    ),
-  ));
+      $curl = curl_init();
+      curl_setopt_array($curl, array(
+        CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
+        CURLOPT_HTTPHEADER => array(
+          $tokenJSON,
+          'Content-Type: application/json'
+        ),
+      ));
 
-  $response2 = curl_exec($curl);
+      $response2 = curl_exec($curl);
 
-  curl_close($curl);
-  
-  $response2JSON = json_decode($response2, true);
+      curl_close($curl);
+      
+      $response2JSON = json_decode($response2, true);
 
-  if ($response2JSON["responseBody"]["code"] == 1) {
-    $wpdb->update(
-      $ordersTableName, 
-      array(
-        'sapStatus'=> "Enviado",
-        'colorNumber'=> 4,
-      ),
-      array('mpOrder'=>$id)
-    );
-  }else{
-    $wpdb->update(
-      $ordersTableName, 
-      array(
-        'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
-        'colorNumber'=> 1,
-      ),
-      array('mpOrder'=>$id)
-    );
-    $to = "comprocafedecolombia@cafedecolombia.com";
-    // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
-    $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
-    $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, por lo cual se requiere reenviar el pedido. Contáctese con el administrador de servidor SAP para más detalles sobre el inconveniente.";
-    wp_mail( $to, $subject, $message);
+      if ($response2JSON["responseBody"]["code"] == 1) {
+        $wpdb->update(
+          $ordersTableName, 
+          array(
+            'sapStatus'=> "Enviado",
+            'colorNumber'=> 4,
+          ),
+          array('mpOrder'=>$id)
+        );
+      }else{
+        $wpdb->update(
+          $ordersTableName, 
+          array(
+            'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
+            'colorNumber'=> 1,
+          ),
+          array('mpOrder'=>$id)
+        );
+        $to = "comprocafedecolombia@cafedecolombia.com";
+        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
+        $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, por lo cual se requiere reenviar el pedido. Contáctese con el administrador de servidor SAP para más detalles sobre el inconveniente.";
+        wp_mail( $to, $subject, $message);
+      }
   }
 
 
@@ -602,7 +603,9 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
           FROM
           {$wpdb->prefix}wc_order_product_lookup as or_prod
           INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-          ON or_prod.product_id = prod_info.product_id
+          ON IF(or_prod.variation_id != 0, 
+            or_prod.variation_id = prod_info.product_id, 
+            or_prod.product_id = prod_info.product_id) 
           INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
           ON or_prod.order_item_id = prod_extra_info.order_item_id
           INNER JOIN {$orderProductsMetaTableName} as orderPL
@@ -1099,7 +1102,9 @@ add_action( 'rest_api_init', function () {
   FROM
   {$wpdb->prefix}wc_order_product_lookup as or_prod
   INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-  ON or_prod.product_id = prod_info.product_id
+  ON IF(or_prod.variation_id != 0, 
+  or_prod.variation_id = prod_info.product_id, 
+  or_prod.product_id = prod_info.product_id) 
   INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
   ON or_prod.order_item_id = prod_extra_info.order_item_id
   INNER JOIN {$orderProductsMetaTableName} as orderPL
@@ -1352,7 +1357,9 @@ add_action( 'rest_api_init', function () {
     FROM
     {$wpdb->prefix}wc_order_product_lookup as or_prod
     INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-    ON or_prod.product_id = prod_info.product_id
+    ON IF(or_prod.variation_id != 0, 
+  or_prod.variation_id = prod_info.product_id, 
+  or_prod.product_id = prod_info.product_id) 
     INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
     ON or_prod.order_item_id = prod_extra_info.order_item_id
     INNER JOIN {$orderProductsMetaTableName} as orderPL
