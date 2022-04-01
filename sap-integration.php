@@ -287,7 +287,7 @@ function estructureAndInsertOrderInfo($id){
       //HACEMOS PETICION AL LOGIN
       $curl = curl_init();
       curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
+        CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -330,7 +330,7 @@ function estructureAndInsertOrderInfo($id){
 
       $curl = curl_init();
       curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+        CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1070,193 +1070,208 @@ add_action( 'rest_api_init', function () {
   $orderProductsMetaTableName = "{$wpdb->prefix}woocommerce_order_itemmeta";
   $order = wc_get_order( $id );
   $order_data = $order->get_data(); // The Order data
-
-  //obtenemos data
-
-  //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
-  //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
-  $orderHeadersAndCustomerQuery = "SELECT 
-  orderS.order_id as mpOrder,
-  orderS.date_created as orderDate,
-  orderS.total_sales as totalPrice,
-  orderGuide.transportGuide,
-  orderGuide.docNumber,
-  orderS.customer_id
-  FROM
-  {$wpdb->prefix}wc_order_stats as orderS
-  INNER JOIN {$ordersTransportGuideTableName} as orderGuide
-    ON orderGuide.mpOrder = orderS.order_id
-  
-  WHERE
-  orderS.order_id = {$id}";
-
-  //QUERY PARA TRAER INFO DE LOS PRODUCTOS DE LA ORDEN/PEDIDO:
-
-  $orderItemsQuery = "SELECT 
-  or_prod.product_qty,
-  or_prod.product_id, 
-  or_prod.order_id as mpOrder, 
-  prod_info.sku as mpSKU,
-  prod_extra_info.order_item_name as description,
-  orderPL.meta_value as brand
-  FROM
-  {$wpdb->prefix}wc_order_product_lookup as or_prod
-  INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
-  ON IF(or_prod.variation_id != 0, 
-  or_prod.variation_id = prod_info.product_id, 
-  or_prod.product_id = prod_info.product_id) 
-  INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
-  ON or_prod.order_item_id = prod_extra_info.order_item_id
-  INNER JOIN {$orderProductsMetaTableName} as orderPL
-  ON or_prod.order_item_id = orderPL.order_item_id
-  AND orderPL.meta_key = 'Vendido por'
-  WHERE 
-  or_prod.order_id = {$id} AND
-  prod_extra_info.order_id = {$id}
-  ";
-  $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
-  $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
-  $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
-  $codigoDepartment = 0;
-  $codigoMunicipio = 0;
-	foreach ($shipments as $key => $value) {
-		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
-		{
-			$codigoDepartment = $value['CODDEPARTAMENTO'];
-			$codigoMunicipio = $value['CODMUNICIPIO'];
-		}
-	};
-
-  $nameCity = "";
-  $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-  foreach ($cities as $key => $value) {
-    if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
-      $nameCity = $value["municipio"];
-    }
-  }
-
-  $orderForRequestBody = array(
-    "customer" => array(
-      "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
-      "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
-      "address" => $order_data['shipping']['address_1'],
-      "city" => mb_strtoupper($nameCity, "utf-8"),
-      "department" => mb_strtoupper($nameCity, "utf-8") == "BOGOTÁ D.C." ? "11" : $codigoDepartment,
-      "phoneNumber" => $order_data['billing']['phone'],
-      "email" => $order_data['billing']['email'],
-    ),
-    "orderHeader" => array(
-      "transportGuide" => $orderHeadersAndCustomerResults[0]["transportGuide"], //falta anadirlo desde el plugin mentor shipping
-      "mpOrder" => $orderHeadersAndCustomerResults[0]["mpOrder"], 
-    ),
-    "orderItems" => array_map("estructureOrderItems", $orderItemsResult)
-
-  );
-
-  //REENVIAMOS DATA A SAP
-  //CREDENCIALES PARA LOGIN SAP:
-  $sapCredentialsLogin = array(
-    "user" => "mkpfncuat",
-    "password" => "3TuC3Lh7FT9vtuD5",
-  );
-
-  $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
-
-
-  //HACEMOS PETICION AL LOGIN
-  $curl = curl_init();
-  curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/login',
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_ENCODING => '',
-    CURLOPT_MAXREDIRS => 10,
-    CURLOPT_TIMEOUT => 0,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    CURLOPT_CUSTOMREQUEST => 'POST',
-    CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
-    CURLOPT_HTTPHEADER => array(
-      'Content-Type: application/json'
-    ),
-  ));
-  $response = curl_exec($curl);
-  curl_close($curl);
-  $responseJSON = json_decode($response, true);
-
-
-  $tokenJSON = 'token: ' . $responseJSON["token"];
-
-  //HACEMOS PETICION PARA ENVIAR PEDIDO
-
-  date_default_timezone_set("America/Bogota");
-  $currentDate = date('YmdHis');
-
-  $requestHeaderInfo = array(
-      "client" => "marketplace",
-      "ipAdress" => $_SERVER["REMOTE_ADDR"],
-      "userName" => "mpfncuat",
-      "sessionID" => $currentDate,
-      "requestID" => $currentDate,
-      "activeRecord" => 1,
-    );
-
-  $requestHeaderAndBodyData = array(
-    "requestHeader" => $requestHeaderInfo,
-    "requestBody" => $orderForRequestBody
-  );
-
-  $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
-
-  $curl = curl_init();
-  curl_setopt_array($curl, array(
-    CURLOPT_URL => 'https://serviciosrest.federaciondecafeteros.org/rest/mktosap/receiveOrder',
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_ENCODING => '',
-    CURLOPT_MAXREDIRS => 10,
-    CURLOPT_TIMEOUT => 0,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    CURLOPT_CUSTOMREQUEST => 'POST',
-    CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
-    CURLOPT_HTTPHEADER => array(
-      $tokenJSON,
-      'Content-Type: application/json'
-    ),
-  ));
-
-  $response2 = curl_exec($curl);
-
-  curl_close($curl);
-  
-  $response2JSON = json_decode($response2, true);
-
   $data = "";
-  if ($response2JSON["responseBody"]["code"] == 1) {
-    $data = array(
-      "result" => true
-    );
-    //ACTUALIZAMOS PEDIDO A ESTADO ENVIADO
-    $wpdb->update($ordersTableName, array(
-      "sapStatus" => "Enviado",
-      "colorNumber" => 4
-    ), array("mpOrder" => $id) );
-    //RESETEAMOS MENSAJES DE ERROR
-    $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
-    $deleteMessagesQuery = "DELETE
-    FROM {$orderMessagesTableName}
-    WHERE
-    mpOrder = {$id}
-    ";
 
-    $wpdb->query($deleteMessagesQuery);
+  $queryValidateIfResent = "SELECT 
+  colorNumber 
+  from wpme_sapwc_orders 
+  WHERE mpOrder = {$id}";
+
+  $isResent = $wpdb->get_results($queryValidateIfResent, ARRAY_A);
+
+  if ($isResent[0]["colorNumber"] == 1) {
+    
+    //obtenemos data
+  
+    //QUERY PARA TRAER INFO DE ORDERHEADERS Y CUSTOMER:
+    //SE DEBE ACTUALIZAR PARA OBTENER TRANSPORTGUIDE
+    $orderHeadersAndCustomerQuery = "SELECT 
+    orderS.order_id as mpOrder,
+    orderS.date_created as orderDate,
+    orderS.total_sales as totalPrice,
+    orderGuide.transportGuide,
+    orderGuide.docNumber,
+    orderS.customer_id
+    FROM
+    {$wpdb->prefix}wc_order_stats as orderS
+    INNER JOIN {$ordersTransportGuideTableName} as orderGuide
+      ON orderGuide.mpOrder = orderS.order_id
+    
+    WHERE
+    orderS.order_id = {$id}";
+  
+    //QUERY PARA TRAER INFO DE LOS PRODUCTOS DE LA ORDEN/PEDIDO:
+  
+    $orderItemsQuery = "SELECT 
+    or_prod.product_qty,
+    or_prod.product_id, 
+    or_prod.order_id as mpOrder, 
+    prod_info.sku as mpSKU,
+    prod_extra_info.order_item_name as description,
+    orderPL.meta_value as brand
+    FROM
+    {$wpdb->prefix}wc_order_product_lookup as or_prod
+    INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
+    ON IF(or_prod.variation_id != 0, 
+    or_prod.variation_id = prod_info.product_id, 
+    or_prod.product_id = prod_info.product_id) 
+    INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
+    ON or_prod.order_item_id = prod_extra_info.order_item_id
+    INNER JOIN {$orderProductsMetaTableName} as orderPL
+    ON or_prod.order_item_id = orderPL.order_item_id
+    AND orderPL.meta_key = 'Vendido por'
+    WHERE 
+    or_prod.order_id = {$id} AND
+    prod_extra_info.order_id = {$id}
+    ";
+    $orderHeadersAndCustomerResults = $wpdb->get_results($orderHeadersAndCustomerQuery, ARRAY_A);
+    $orderItemsResult = $wpdb->get_results($orderItemsQuery, ARRAY_A);
+    $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+    $codigoDepartment = 0;
+    $codigoMunicipio = 0;
+    foreach ($shipments as $key => $value) {
+      if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
+      {
+        $codigoDepartment = $value['CODDEPARTAMENTO'];
+        $codigoMunicipio = $value['CODMUNICIPIO'];
+      }
+    };
+  
+    $nameCity = "";
+    $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
+    foreach ($cities as $key => $value) {
+      if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
+        $nameCity = $value["municipio"];
+      }
+    }
+  
+    $orderForRequestBody = array(
+      "customer" => array(
+        "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
+        "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
+        "address" => $order_data['shipping']['address_1'],
+        "city" => mb_strtoupper($nameCity, "utf-8"),
+        "department" => mb_strtoupper($nameCity, "utf-8") == "BOGOTÁ D.C." ? "11" : $codigoDepartment,
+        "phoneNumber" => $order_data['billing']['phone'],
+        "email" => $order_data['billing']['email'],
+      ),
+      "orderHeader" => array(
+        "transportGuide" => $orderHeadersAndCustomerResults[0]["transportGuide"], //falta anadirlo desde el plugin mentor shipping
+        "mpOrder" => $orderHeadersAndCustomerResults[0]["mpOrder"], 
+      ),
+      "orderItems" => array_map("estructureOrderItems", $orderItemsResult)
+  
+    );
+  
+    //REENVIAMOS DATA A SAP
+    //CREDENCIALES PARA LOGIN SAP:
+    $sapCredentialsLogin = array(
+      "user" => "mkpfncuat",
+      "password" => "3TuC3Lh7FT9vtuD5",
+    );
+  
+    $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
+  
+  
+    //HACEMOS PETICION AL LOGIN
+    $curl = curl_init();
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/login',
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => '',
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => 'POST',
+      CURLOPT_POSTFIELDS => $sapCredentialsLoginJSON,
+      CURLOPT_HTTPHEADER => array(
+        'Content-Type: application/json'
+      ),
+    ));
+    $response = curl_exec($curl);
+    curl_close($curl);
+    $responseJSON = json_decode($response, true);
+  
+  
+    $tokenJSON = 'token: ' . $responseJSON["token"];
+  
+    //HACEMOS PETICION PARA ENVIAR PEDIDO
+  
+    date_default_timezone_set("America/Bogota");
+    $currentDate = date('YmdHis');
+  
+    $requestHeaderInfo = array(
+        "client" => "marketplace",
+        "ipAdress" => $_SERVER["REMOTE_ADDR"],
+        "userName" => "mpfncuat",
+        "sessionID" => $currentDate,
+        "requestID" => $currentDate,
+        "activeRecord" => 1,
+      );
+  
+    $requestHeaderAndBodyData = array(
+      "requestHeader" => $requestHeaderInfo,
+      "requestBody" => $orderForRequestBody
+    );
+  
+    $requestHeaderAndBodyDataJSON = json_encode($requestHeaderAndBodyData); 
+  
+    $curl = curl_init();
+    curl_setopt_array($curl, array(
+      CURLOPT_URL => 'https://serviciosrestqa.federaciondecafeteros.org/rest/mktosap/receiveOrder',
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => '',
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => 'POST',
+      CURLOPT_POSTFIELDS => $requestHeaderAndBodyDataJSON,
+      CURLOPT_HTTPHEADER => array(
+        $tokenJSON,
+        'Content-Type: application/json'
+      ),
+    ));
+  
+    $response2 = curl_exec($curl);
+  
+    curl_close($curl);
+    
+    $response2JSON = json_decode($response2, true);
+  
+    if ($response2JSON["responseBody"]["code"] == 1) {
+      $data = array(
+        "result" => true
+      );
+      //ACTUALIZAMOS PEDIDO A ESTADO ENVIADO
+      $wpdb->update($ordersTableName, array(
+        "sapStatus" => "Enviado",
+        "colorNumber" => 4
+      ), array("mpOrder" => $id) );
+      //RESETEAMOS MENSAJES DE ERROR
+      $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
+      $deleteMessagesQuery = "DELETE
+      FROM {$orderMessagesTableName}
+      WHERE
+      mpOrder = {$id}
+      ";
+  
+      $wpdb->query($deleteMessagesQuery);
+  
+    }else{
+      $data = array(
+        "result" => false,
+        "responseBody" => $response2JSON["responseBody"]
+      );
+    }
 
   }else{
     $data = array(
-      "result" => false,
-      "responseBody" => $response2JSON["responseBody"]
+      "result" => true,
     );
   }
-
+  
     $responseAPI = new WP_REST_Response( $data );
     return $responseAPI;
 
