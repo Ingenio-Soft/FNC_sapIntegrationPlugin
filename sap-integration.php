@@ -1362,16 +1362,14 @@ add_action( 'rest_api_init', function () {
 
 
 
-/* //codigo a ejecutar al momento de ejecutarse correctamente el pago de un pedido
-function getOrderInfoAfterCheckoutProcessed($order_id) {
+//CODIGO PARA EJECUTAR FUNCION QUE EXTRAE DATA DE PEDIDO Y ENVIA A SAP MEDIANTE HOOK AL CAMBIAR ESTADO DE PEDIDO
 
-  global $wpdb;
-
-  //OBTENEMOS PEDIDO, GUARDAMOS INTERNAMENTE Y RETORNAMOS DATA LISTA PARA ENVIARSE A API
-  $dataToJson = estructureAndInsertOrderInfo( $order_id );
-
+function sendOrderToSapWhenOrderStatusProcessing($order_id, $old_status, $new_status){
+  if( $new_status == "processing" ) {
+    estructureAndInsertOrderInfo($order_id);
+  }
 }
-add_action( 'woocommerce_thankyou', 'getOrderInfoAfterCheckoutProcessed' ); */
+add_action('woocommerce_order_status_changed','sendOrderToSapWhenOrderStatusProcessing', 10, 3);
 
 
 //CODIGO PARA ACTIVAR CRON
