@@ -45,6 +45,7 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
     novedadDelayExxeNotified TINYINT(1) NULL,
     sapErrorNotified TINYINT(1) NULL,
     exxeError TINYINT(1) NULL,
+    sapReturnMessage TEXT NULL,
     CONSTRAINT sapwc_orders_PK PRIMARY KEY (id) 
   )
   ENGINE=MyISAM
@@ -230,7 +231,7 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
@@ -333,14 +334,15 @@ function estructureAndInsertOrderInfo($id){
 
       $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
       $stateKey = array_search($orderForRequestBody["department"], array_column($states, 'CODDEPARTAMENTO'));
-      $nameDepartment = $states[$stateKey]["DEPARTAMENTOT"];
+      $nameDepartmentFormat = $states[$stateKey]["DEPARTAMENTOT"];
+      $nameDepartment = $states[$stateKey]["DEPARTAMENTO"];
 
     return array(
       "transportGuide"      => $order["transportGuide"],
       "mpOrder"             => $order["mpOrder"],
       "orderAddress"        => $orderForRequestBody["address"],
       "city"                => $orderForRequestBody["city"],
-      "department"          => $nameDepartment,
+      "department"          => $nameDepartmentFormat ?: $nameDepartment,
       "docNumber"           => $orderForRequestBody["docNumber"],  //FALTA DOCNUMBER $orderForRequestBody["docNumber"],
       "customerFullName"    => $orderForRequestBody["name"],
       "phoneNumber"         => $orderForRequestBody["phoneNumber"],
@@ -382,6 +384,7 @@ function estructureAndInsertOrderInfo($id){
           array(
             'sapStatus'=> "Enviado",
             'colorNumber'=> 4,
+            'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
           ),
           array('mpOrder'=>$id)
         );
@@ -392,6 +395,7 @@ function estructureAndInsertOrderInfo($id){
           array(
             'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
             'colorNumber'=> 1,
+            'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
           ),
           array('mpOrder'=>$id)
         );
@@ -1112,12 +1116,15 @@ add_action( 'rest_api_init', function () {
   
     if ($response2JSON["responseBody"]["code"] == 1) {
       $data = array(
-        "result" => true
+        "result" => true,
+        "message" => $response2JSON["responseBody"],
+        "data" => $orderForRequestBody
       );
       //ACTUALIZAMOS PEDIDO A ESTADO ENVIADO
       $wpdb->update($ordersTableName, array(
         "sapStatus" => "Enviado",
-        "colorNumber" => 4
+        "colorNumber" => 4,
+        'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
       ), array("mpOrder" => $id) );
       //RESETEAMOS MENSAJES DE ERROR
       $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
@@ -1130,9 +1137,14 @@ add_action( 'rest_api_init', function () {
       $wpdb->query($deleteMessagesQuery);
   
     }else{
+      $wpdb->update($ordersTableName, array(
+        "colorNumber" => 1,
+        "sapReturnMessage" => $response2JSON["responseBody"]["message"],
+      ), array("mpOrder" => $id) );
       $data = array(
         "result" => false,
-        "message" => $response2JSON["responseBody"]
+        "message" => $response2JSON["responseBody"],
+        "data" => $orderForRequestBody
       );
     }
 
@@ -1273,7 +1285,12 @@ add_action( 'rest_api_init', function () {
 
       $orderDataArray = extractOrderDataById($id);
       $orderForRequestBody = $orderDataArray["orderInfoJSON"];
-      $data = sendOrderToSap($orderForRequestBody);
+      $sapResponse = sendOrderToSap($orderForRequestBody);
+
+      $data = array(
+        "data" => $orderForRequestBody,
+        "response" => $sapResponse,
+      );
 
       $responseAPI = new WP_REST_Response( $data );
 
