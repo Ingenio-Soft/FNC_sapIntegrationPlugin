@@ -187,21 +187,16 @@ function estructureAndInsertOrderInfo($id){
   $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
   $codigoDepartment = 0;
   $codigoMunicipio = 0;
+  $nameCity = "";
 	foreach ($shipments as $key => $value) {
 		if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
 		{
 			$codigoDepartment = $value['CODDEPARTAMENTO'];
 			$codigoMunicipio = $value['CODMUNICIPIO'];
+			$nameCity = $value['MUNICIPIOT'] ?: $value['MUNICIPIO'];
 		}
 	};
 
-  $nameCity = "";
-  $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-  foreach ($cities as $key => $value) {
-    if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
-      $nameCity = $value["municipio"];
-    }
-  }
 
   $orderForRequestBody = array(
     "customer" => array(
@@ -235,9 +230,9 @@ function estructureAndInsertOrderInfo($id){
 
   $estructureOrderInfo = function($order, $orderForRequestBody){
 
-      $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-      $stateKey = array_search($orderForRequestBody["department"], array_column($states, 'c_digo_dane_del_departamento'));
-      $nameDepartment = $states[$stateKey]["departamento"];
+      $states = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
+      $stateKey = array_search($orderForRequestBody["department"], array_column($states, 'CODDEPARTAMENTO'));
+      $nameDepartment = $states[$stateKey]["DEPARTAMENTOT"];
 
     return array(
       "transportGuide"      => $order["transportGuide"],
@@ -1129,21 +1124,16 @@ add_action( 'rest_api_init', function () {
     $shipments = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/daneColombia.json'), true);
     $codigoDepartment = 0;
     $codigoMunicipio = 0;
+    $nameCity = "";
     foreach ($shipments as $key => $value) {
       if($value['DEPARTAMENTO'] == $order_data['shipping']['state'] && $value['MUNICIPIO'] == strtoupper($order_data['shipping']['city']))
       {
         $codigoDepartment = $value['CODDEPARTAMENTO'];
         $codigoMunicipio = $value['CODMUNICIPIO'];
+			  $nameCity = $value['MUNICIPIOT'] ?: $value['MUNICIPIO'];
       }
     };
   
-    $nameCity = "";
-    $cities = json_decode(file_get_contents(plugin_dir_path( __FILE__ ). '/departmentsColombia.json'), true);
-    foreach ($cities as $key => $value) {
-      if ($value["c_digo_dane_del_municipio"] == $codigoMunicipio) {
-        $nameCity = $value["municipio"];
-      }
-    }
   
     $orderForRequestBody = array(
       "customer" => array(
