@@ -1090,44 +1090,58 @@
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81001",
-      "MUNICIPIO": "ARAUCA"
+      "MUNICIPIO": "ARAUCA",
+      "MUNICIPIOT": "ARAUCA"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81065",
-      "MUNICIPIO": "ARAUQUITA"
+      "MUNICIPIO": "ARAUQUITA",
+      "MUNICIPIOT": "ARAUQUITA"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81220",
-      "MUNICIPIO": "CRAVO NORTE"
+      "MUNICIPIO": "CRAVO NORTE",
+      "MUNICIPIOT": "CRAVO NORTE"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81300",
-      "MUNICIPIO": "FORTUL"
+      "MUNICIPIO": "FORTUL",
+      "MUNICIPIOT": "FORTUL"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81591",
-      "MUNICIPIO": "PUERTO RONDON"
+      "MUNICIPIO": "PUERTO RONDON",
+      "MUNICIPIOT": "PUERTO RONDÓN"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81736",
-      "MUNICIPIO": "SARAVENA"
+      "MUNICIPIO": "SARAVENA",
+      "MUNICIPIOT": "SARAVENA"
     },
     {
       "CODDEPARTAMENTO": "81",
       "DEPARTAMENTO": "ARU",
+      "DEPARTAMENTOT": "ARAUCA",
       "CODMUNICIPIO": "81794",
-      "MUNICIPIO": "TAME"
+      "MUNICIPIO": "TAME",
+      "MUNICIPIOT": "TAME"
     },
     {
       "CODDEPARTAMENTO": "08",
