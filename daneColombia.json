@@ -6067,386 +6067,514 @@
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52001",
-      "MUNICIPIO": "PASTO"
+      "MUNICIPIO": "PASTO",
+      "MUNICIPIOT": "PASTO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52019",
-      "MUNICIPIO": "ALBAN"
+      "MUNICIPIO": "ALBAN",
+      "MUNICIPIOT": "ALBÁN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52022",
-      "MUNICIPIO": "ALDANA"
+      "MUNICIPIO": "ALDANA",
+      "MUNICIPIOT": "ALDANA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52036",
-      "MUNICIPIO": "ANCUYA"
+      "MUNICIPIO": "ANCUYA",
+      "MUNICIPIOT": "ANCUYÁ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52051",
-      "MUNICIPIO": "ARBOLEDA"
+      "MUNICIPIO": "ARBOLEDA",
+      "MUNICIPIOT": "ARBOLEDA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52079",
-      "MUNICIPIO": "BARBACOAS"
+      "MUNICIPIO": "BARBACOAS",
+      "MUNICIPIOT": "BARBACOAS"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52083",
-      "MUNICIPIO": "BELEN"
+      "MUNICIPIO": "BELEN",
+      "MUNICIPIOT": "BELÉN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52110",
-      "MUNICIPIO": "BUESACO"
+      "MUNICIPIO": "BUESACO",
+      "MUNICIPIOT": "BUESACO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52203",
-      "MUNICIPIO": "COLON"
+      "MUNICIPIO": "COLON",
+      "MUNICIPIOT": "COLÓN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52207",
-      "MUNICIPIO": "CONSACA"
+      "MUNICIPIO": "CONSACA",
+      "MUNICIPIOT": "CONSACA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52210",
-      "MUNICIPIO": "CONTADERO"
+      "MUNICIPIO": "CONTADERO",
+      "MUNICIPIOT": "CONTADERO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52215",
-      "MUNICIPIO": "CORDOBA"
+      "MUNICIPIO": "CORDOBA",
+      "MUNICIPIOT": "CÓRDOBA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52224",
-      "MUNICIPIO": "CUASPUD"
+      "MUNICIPIO": "CUASPUD",
+      "MUNICIPIOT": "CUASPUD"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52227",
-      "MUNICIPIO": "CUMBAL"
+      "MUNICIPIO": "CUMBAL",
+      "MUNICIPIOT": "CUMBAL"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52233",
-      "MUNICIPIO": "CUMBITARA"
+      "MUNICIPIO": "CUMBITARA",
+      "MUNICIPIOT": "CUMBITARA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52240",
-      "MUNICIPIO": "CHACHAGÜI"
+      "MUNICIPIO": "CHACHAGÜI",
+      "MUNICIPIOT": "CHACHAGÜÍ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52250",
-      "MUNICIPIO": "EL CHARCO"
+      "MUNICIPIO": "EL CHARCO",
+      "MUNICIPIOT": "EL CHARCO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52254",
-      "MUNICIPIO": "EL PEÑOL"
+      "MUNICIPIO": "EL PEÑOL",
+      "MUNICIPIOT": "EL PEÑOL"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52256",
-      "MUNICIPIO": "EL ROSARIO"
+      "MUNICIPIO": "EL ROSARIO",
+      "MUNICIPIOT": "EL ROSARIO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52258",
-      "MUNICIPIO": "EL TABLON DE GOMEZ"
+      "MUNICIPIO": "EL TABLON DE GOMEZ",
+      "MUNICIPIOT": "EL TABLÓN DE GÓMEZ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52260",
-      "MUNICIPIO": "EL TAMBO"
+      "MUNICIPIO": "EL TAMBO",
+      "MUNICIPIOT": "EL TAMBO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52287",
-      "MUNICIPIO": "FUNES"
+      "MUNICIPIO": "FUNES",
+      "MUNICIPIOT": "FUNES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52317",
-      "MUNICIPIO": "GUACHUCAL"
+      "MUNICIPIO": "GUACHUCAL",
+      "MUNICIPIOT": "GUACHUCAL"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52320",
-      "MUNICIPIO": "GUAITARILLA"
+      "MUNICIPIO": "GUAITARILLA",
+      "MUNICIPIOT": "GUAITARILLA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52323",
-      "MUNICIPIO": "GUALMATAN"
+      "MUNICIPIO": "GUALMATAN",
+      "MUNICIPIOT": "GUALMATÁN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52352",
-      "MUNICIPIO": "ILES"
+      "MUNICIPIO": "ILES",
+      "MUNICIPIOT": "ILES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52354",
-      "MUNICIPIO": "IMUES"
+      "MUNICIPIO": "IMUES",
+      "MUNICIPIOT": "IMUÉS"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52356",
-      "MUNICIPIO": "IPIALES"
+      "MUNICIPIO": "IPIALES",
+      "MUNICIPIOT": "IPIALES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52378",
-      "MUNICIPIO": "LA CRUZ"
+      "MUNICIPIO": "LA CRUZ",
+      "MUNICIPIOT": "LA CRUZ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52381",
-      "MUNICIPIO": "LA FLORIDA"
+      "MUNICIPIO": "LA FLORIDA",
+      "MUNICIPIOT": "LA FLORIDA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52385",
-      "MUNICIPIO": "LA LLANADA"
+      "MUNICIPIO": "LA LLANADA",
+      "MUNICIPIOT": "LA LLANADA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52390",
-      "MUNICIPIO": "LA TOLA"
+      "MUNICIPIO": "LA TOLA",
+      "MUNICIPIOT": "LA TOLA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52399",
-      "MUNICIPIO": "LA UNION"
+      "MUNICIPIO": "LA UNION",
+      "MUNICIPIOT": "LA UNIÓN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52405",
-      "MUNICIPIO": "LEIVA"
+      "MUNICIPIO": "LEIVA",
+      "MUNICIPIOT": "LEIVA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52411",
-      "MUNICIPIO": "LINARES"
+      "MUNICIPIO": "LINARES",
+      "MUNICIPIOT": "LINARES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52418",
-      "MUNICIPIO": "LOS ANDES"
+      "MUNICIPIO": "LOS ANDES",
+      "MUNICIPIOT": "LOS ANDES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52427",
-      "MUNICIPIO": "MAGÜI"
+      "MUNICIPIO": "MAGÜI",
+      "MUNICIPIOT": "MAGUI"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52435",
-      "MUNICIPIO": "MALLAMA"
+      "MUNICIPIO": "MALLAMA",
+      "MUNICIPIOT": "MALLAMA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52473",
-      "MUNICIPIO": "MOSQUERA"
+      "MUNICIPIO": "MOSQUERA",
+      "MUNICIPIOT": "MOSQUERA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52480",
-      "MUNICIPIO": "NARIÑO"
+      "MUNICIPIO": "NARIÑO",
+      "MUNICIPIOT": "NARIÑO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52490",
-      "MUNICIPIO": "OLAYA HERRERA"
+      "MUNICIPIO": "OLAYA HERRERA",
+      "MUNICIPIOT": "OLAYA HERRERA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52506",
-      "MUNICIPIO": "OSPINA"
+      "MUNICIPIO": "OSPINA",
+      "MUNICIPIOT": "OSPINA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52520",
-      "MUNICIPIO": "FRANCISCO PIZARRO"
+      "MUNICIPIO": "FRANCISCO PIZARRO",
+      "MUNICIPIOT": "FRANCISCO PIZARRO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52540",
-      "MUNICIPIO": "POLICARPA"
+      "MUNICIPIO": "POLICARPA",
+      "MUNICIPIOT": "POLICARPA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52560",
-      "MUNICIPIO": "POTOSI"
+      "MUNICIPIO": "POTOSI",
+      "MUNICIPIOT": "POTOSÍ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52565",
-      "MUNICIPIO": "PROVIDENCIA"
+      "MUNICIPIO": "PROVIDENCIA",
+      "MUNICIPIOT": "PROVIDENCIA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52573",
-      "MUNICIPIO": "PUERRES"
+      "MUNICIPIO": "PUERRES",
+      "MUNICIPIOT": "PUERRES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52585",
-      "MUNICIPIO": "PUPIALES"
+      "MUNICIPIO": "PUPIALES",
+      "MUNICIPIOT": "PUPIALES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52612",
-      "MUNICIPIO": "RICAURTE"
+      "MUNICIPIO": "RICAURTE",
+      "MUNICIPIOT": "RICAURTE"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52621",
-      "MUNICIPIO": "ROBERTO PAYAN"
+      "MUNICIPIO": "ROBERTO PAYAN",
+      "MUNICIPIOT": "ROBERTO PAYÁN"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52678",
-      "MUNICIPIO": "SAMANIEGO"
+      "MUNICIPIO": "SAMANIEGO",
+      "MUNICIPIOT": "SAMANIEGO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52683",
-      "MUNICIPIO": "SANDONA"
+      "MUNICIPIO": "SANDONA",
+      "MUNICIPIOT": "SANDONÁ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52685",
-      "MUNICIPIO": "SAN BERNARDO"
+      "MUNICIPIO": "SAN BERNARDO",
+      "MUNICIPIOT": "SAN BERNARDO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52687",
-      "MUNICIPIO": "SAN LORENZO"
+      "MUNICIPIO": "SAN LORENZO",
+      "MUNICIPIOT": "SAN LORENZO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52693",
-      "MUNICIPIO": "SAN PABLO"
+      "MUNICIPIO": "SAN PABLO",
+      "MUNICIPIOT": "SAN PABLO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52694",
-      "MUNICIPIO": "SAN PEDRO DE CARTAGO"
+      "MUNICIPIO": "SAN PEDRO DE CARTAGO",
+      "MUNICIPIOT": "SAN PEDRO DE CARTAGO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52696",
-      "MUNICIPIO": "SANTA BARBARA"
+      "MUNICIPIO": "SANTA BARBARA",
+      "MUNICIPIOT": "SANTA BÁRBARA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52699",
-      "MUNICIPIO": "SANTACRUZ"
+      "MUNICIPIO": "SANTACRUZ",
+      "MUNICIPIOT": "SANTACRUZ"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52720",
-      "MUNICIPIO": "SAPUYES"
+      "MUNICIPIO": "SAPUYES",
+      "MUNICIPIOT": "SAPUYES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52786",
-      "MUNICIPIO": "TAMINANGO"
+      "MUNICIPIO": "TAMINANGO",
+      "MUNICIPIOT": "TAMINANGO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52788",
-      "MUNICIPIO": "TANGUA"
+      "MUNICIPIO": "TANGUA",
+      "MUNICIPIOT": "TANGUA"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52835",
-      "MUNICIPIO": "SAN ANDRES DE TUMACO"
+      "MUNICIPIO": "SAN ANDRES DE TUMACO",
+      "MUNICIPIOT": "TUMACO"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52838",
-      "MUNICIPIO": "TUQUERRES"
+      "MUNICIPIO": "TUQUERRES",
+      "MUNICIPIOT": "TÚQUERRES"
     },
     {
       "CODDEPARTAMENTO": "52",
       "DEPARTAMENTO": "NAR",
+      "DEPARTAMENTOT": "NARIÑO",
       "CODMUNICIPIO": "52885",
-      "MUNICIPIO": "YACUANQUER"
+      "MUNICIPIO": "YACUANQUER",
+      "MUNICIPIOT": "YACUANQUER"
     },
     {
       "CODDEPARTAMENTO": "54",
