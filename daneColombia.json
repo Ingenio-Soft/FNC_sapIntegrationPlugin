@@ -7923,158 +7923,210 @@
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70001",
-      "MUNICIPIO": "SINCELEJO"
+      "MUNICIPIO": "SINCELEJO",
+      "MUNICIPIOT": "SINCELEJO"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70110",
-      "MUNICIPIO": "BUENAVISTA"
+      "MUNICIPIO": "BUENAVISTA",
+      "MUNICIPIOT": "BUENAVISTA"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70124",
-      "MUNICIPIO": "CAIMITO"
+      "MUNICIPIO": "CAIMITO",
+      "MUNICIPIOT": "CAIMITO"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70204",
-      "MUNICIPIO": "COLOSO"
+      "MUNICIPIO": "COLOSO",
+      "MUNICIPIOT": "COLOSO"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70215",
-      "MUNICIPIO": "COROZAL"
+      "MUNICIPIO": "COROZAL",
+      "MUNICIPIOT": "COROZAL"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70221",
-      "MUNICIPIO": "COVEÑAS"
+      "MUNICIPIO": "COVEÑAS",
+      "MUNICIPIOT": "COVEÑAS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70230",
-      "MUNICIPIO": "CHALAN"
+      "MUNICIPIO": "CHALAN",
+      "MUNICIPIOT": "CHALÁN"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70233",
-      "MUNICIPIO": "EL ROBLE"
+      "MUNICIPIO": "EL ROBLE",
+      "MUNICIPIOT": "EL ROBLE"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70235",
-      "MUNICIPIO": "GALERAS"
+      "MUNICIPIO": "GALERAS",
+      "MUNICIPIOT": "GALERAS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70265",
-      "MUNICIPIO": "GUARANDA"
+      "MUNICIPIO": "GUARANDA",
+      "MUNICIPIOT": "GUARANDA"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70400",
-      "MUNICIPIO": "LA UNION"
+      "MUNICIPIO": "LA UNION",
+      "MUNICIPIOT": "LA UNIÓN"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70418",
-      "MUNICIPIO": "LOS PALMITOS"
+      "MUNICIPIO": "LOS PALMITOS",
+      "MUNICIPIOT": "LOS PALMITOS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70429",
-      "MUNICIPIO": "MAJAGUAL"
+      "MUNICIPIO": "MAJAGUAL",
+      "MUNICIPIOT": "MAJAGUAL"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70473",
-      "MUNICIPIO": "MORROA"
+      "MUNICIPIO": "MORROA",
+      "MUNICIPIOT": "MORROA"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70508",
-      "MUNICIPIO": "OVEJAS"
+      "MUNICIPIO": "OVEJAS",
+      "MUNICIPIOT": "OVEJAS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70523",
-      "MUNICIPIO": "PALMITO"
+      "MUNICIPIO": "PALMITO",
+      "MUNICIPIOT": "PALMITO"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70670",
-      "MUNICIPIO": "SAMPUES"
+      "MUNICIPIO": "SAMPUES",
+      "MUNICIPIOT": "SAMPUÉS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70678",
-      "MUNICIPIO": "SAN BENITO ABAD"
+      "MUNICIPIO": "SAN BENITO ABAD",
+      "MUNICIPIOT": "SAN BENITO ABAD"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70702",
-      "MUNICIPIO": "SAN JUAN DE BETULIA"
+      "MUNICIPIO": "SAN JUAN DE BETULIA",
+      "MUNICIPIOT": "SAN JUAN BETULIA"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70708",
-      "MUNICIPIO": "SAN MARCOS"
+      "MUNICIPIO": "SAN MARCOS",
+      "MUNICIPIOT": "SAN MARCOS"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70713",
-      "MUNICIPIO": "SAN ONOFRE"
+      "MUNICIPIO": "SAN ONOFRE",
+      "MUNICIPIOT": "SAN ONOFRE"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70717",
-      "MUNICIPIO": "SAN PEDRO"
+      "MUNICIPIO": "SAN PEDRO",
+      "MUNICIPIOT": "SAN PEDRO"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70742",
-      "MUNICIPIO": "SAN LUIS DE SINCE"
+      "MUNICIPIO": "SAN LUIS DE SINCE",
+      "MUNICIPIOT": "SINCÉ"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70771",
-      "MUNICIPIO": "SUCRE"
+      "MUNICIPIO": "SUCRE",
+      "MUNICIPIOT": "SUCRE"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70820",
-      "MUNICIPIO": "SANTIAGO DE TOLU"
+      "MUNICIPIO": "SANTIAGO DE TOLU",
+      "MUNICIPIOT": "SANTIAGO DE TOLÚ"
     },
     {
       "CODDEPARTAMENTO": "70",
       "DEPARTAMENTO": "SUC",
+      "DEPARTAMENTOT": "SUCRE",
       "CODMUNICIPIO": "70823",
-      "MUNICIPIO": "TOLU VIEJO"
+      "MUNICIPIO": "TOLU VIEJO",
+      "MUNICIPIOT": "TOLÚ VIEJO"
     },
     {
       "CODDEPARTAMENTO": "73",
