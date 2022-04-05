@@ -8440,38 +8440,50 @@
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97001",
-      "MUNICIPIO": "MITU"
+      "MUNICIPIO": "MITU",
+      "MUNICIPIOT": "MITÚ"
     },
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97161",
-      "MUNICIPIO": "CARURU"
+      "MUNICIPIO": "CARURU",
+      "MUNICIPIOT": "CARURU"
     },
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97511",
-      "MUNICIPIO": "PACOA"
+      "MUNICIPIO": "PACOA",
+      "MUNICIPIOT": "PACOA"
     },
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97666",
-      "MUNICIPIO": "TARAIRA"
+      "MUNICIPIO": "TARAIRA",
+      "MUNICIPIOT": "TARAIRA"
     },
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97777",
-      "MUNICIPIO": "PAPUNAUA"
+      "MUNICIPIO": "PAPUNAUA",
+      "MUNICIPIOT": "PAPUNAHUA"
     },
     {
       "CODDEPARTAMENTO": "97",
       "DEPARTAMENTO": "VAU",
+      "DEPARTAMENTOT": "VAUPÉS",
       "CODMUNICIPIO": "97889",
-      "MUNICIPIO": "YAVARATE"
+      "MUNICIPIO": "YAVARATE",
+      "MUNICIPIOT": "YAVARATÉ"
     },
     {
       "CODDEPARTAMENTO": "99",
