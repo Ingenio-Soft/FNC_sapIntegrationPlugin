@@ -1849,7 +1849,8 @@ window.addEventListener("DOMContentLoaded", () => {
 					headers: myHeaders,
 				};
 
-				btnReenviar.classList.add("disabled")
+				btnReenviar.classList.add("disabled");
+				btnReenviar.setAttribute("disabled", true);
 				btnReenviar.innerHTML = "<div class='loading'></div>";
 
 				fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions)
@@ -1864,10 +1865,12 @@ window.addEventListener("DOMContentLoaded", () => {
 							alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
 						}
 						window.location.reload();
+						btnReenviar.removeAttribute("disabled");
 					})
 					.catch(error => {
 						btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
 						btnReenviar.classList.remove("disabled");
+						btnReenviar.removeAttribute("disabled");
 						alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
 					});
 
