@@ -1099,13 +1099,15 @@ add_action( 'rest_api_init', function () {
   $data = "";
 
   $queryValidateIfResent = "SELECT 
-  colorNumber 
+  colorNumber, exxeError 
   from {$ordersTableName} 
   WHERE mpOrder = {$id}";
 
   $isResent = $wpdb->get_results($queryValidateIfResent, ARRAY_A);
 
-  if ($isResent[0]["colorNumber"] == 1) {
+  if ($isResent[0]["colorNumber"] == 1 && 
+      ($isResent[0]["exxeError"] == 0 || $isResent[0]["exxeError"] == null)
+      ) {
     
     //EXTRAEMOS DATA
     $orderDataArray = extractOrderDataById($id);

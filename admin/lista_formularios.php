@@ -1724,6 +1724,12 @@ inputPage.addEventListener("keypress", (e) => {
 
 //funcionalidad para ver info del pedido y productos en modal al abrirlo
 
+const resendOrderToSap = async(orderNumber, requestOptions) => {
+	const resp = await fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions);
+	const data = await resp.json();
+	return data;
+}
+
 window.addEventListener("DOMContentLoaded", () => {
  // Hacemos peticion a API para extraer productos del pedido
  const myHeaders = new Headers();
@@ -1838,11 +1844,12 @@ window.addEventListener("DOMContentLoaded", () => {
 			if (ExError == "1") {
 				cardExxe.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
 				novedadModalExe.setAttribute("style", "display: block;");
+				btnEnviar.setAttribute("style", "display: none;");
 			}else{
 				novedadModalExe.setAttribute("style", "display: none;");
 				//FUNCIONALIDAD BOTON REENVIAR
 				btnEnviar.setAttribute("style", "display: block; padding-left: 5px;");
-				btnReenviar.addEventListener("click", () => {
+				btnReenviar.addEventListener("click", async() => {
 				btnReenviar.setAttribute("disabled", true);
 				btnReenviar.setAttribute("style", "pointer-events: none");
 				const requestOptions = {
@@ -1853,28 +1860,26 @@ window.addEventListener("DOMContentLoaded", () => {
 				btnReenviar.classList.add("disabled");
 				btnReenviar.innerHTML = "<div class='loading'></div>";
 
-				fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/resend/${orderNumber}`, requestOptions)
-						
-					.then(response => response.json())
-					.then(result => {
-						btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
-						btnReenviar.classList.remove("disabled");
-						if (result.result === true) {
-							alert("El pedido se ha reenviado correctamente");
-						}else{
-							alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
-						}
-						window.location.reload();
-						btnReenviar.removeAttribute("disabled");
-						btnReenviar.removeAttribute("style");
-					})
-					.catch(error => {
-						btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
-						btnReenviar.classList.remove("disabled");
-						btnReenviar.removeAttribute("disabled");
-						btnReenviar.removeAttribute("style");
+				try {
+					const result = await resendOrderToSap(orderNumber, requestOptions)
+					btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
+					btnReenviar.classList.remove("disabled");
+					if (result.result === true) {
+						alert("El pedido se ha reenviado correctamente");
+					}else{
 						alert("Hubo un error el reenviar el pedido, por favor intentelo mas tarde");
-					});
+					}
+					window.location.reload();
+					btnReenviar.removeAttribute("disabled");
+					btnReenviar.removeAttribute("style");
+				} catch (error) {
+					btnReenviar.innerHTML = `<span class="btn-label"><i class="fa fa-play-circle-o"></i></span>Reenviar pedido</button>`;
+					btnReenviar.classList.remove("disabled");
+					btnReenviar.removeAttribute("disabled");
+					btnReenviar.removeAttribute("style");
+					alert(error);
+					window.location.reload();
+				}
 
 				})
 				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
