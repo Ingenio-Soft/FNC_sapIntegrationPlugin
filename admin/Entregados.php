@@ -29,7 +29,7 @@ if(isset($_POST["pagina"])){
 }
 
 //LIMITE POR PAGINA
-$por_pagina = floatval(1);
+$por_pagina = floatval(10);
 //CALCULO PARA EL OFFSET DEL QUERY
 $empieza = ($pagina-1)* $por_pagina;
 
