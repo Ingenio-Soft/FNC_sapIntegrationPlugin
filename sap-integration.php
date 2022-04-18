@@ -30,7 +30,7 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
     department varchar(100) NULL,
     docNumber varchar(100) NULL,
     customerFullName varchar(200) NULL,
-    phoneNumber varchar(12) NULL,
+    phoneNumber varchar(50) NULL,
     email varchar(100) NULL,
     totalPrice varchar(100) NULL,
     orderDate varchar(100) NULL,
