@@ -1270,7 +1270,7 @@ font-weight: bolder;
         <div class="col-lg-p col-sm-6">
             <div class="card-box bg-green" data-page="admin.php?page=sap-integration%2Fadmin%2FEntregados.php">
                 <div class="inner">
-                    <h3> Pedidos entregrados </h3>
+                    <h3> Pedidos entregados </h3>
                     <p> 
 	                <?php
 					print_r ($deliveredOrders);
