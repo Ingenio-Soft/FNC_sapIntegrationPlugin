@@ -614,8 +614,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
-        // $to = "comprocafedecolombia@cafedecolombia.com";
-        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        $to = "comprocafedecolombia@cafedecolombia.com";
+        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderById[0]["mpOrder"]} despachado";
         $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido despachado.";
 
@@ -1230,8 +1230,8 @@ add_action( 'rest_api_init', function () {
     $emailer->heading = "Pedido reembolsado No. {$id}"; //Título del contenido del correo
     $emailer->trigger($id);
     //ENVIAMOS CORREO A SAP NOTIFICANDO EL PEDIDO REEMBOLSADO
-    $to = ["yeisong12ayeisondavidsuarezg12@gmail.com"];
-    // $to = ["cristian.beltran@almacafe.com.co", "luz.toro@almacafe.com.co"];
+    // $to = ["yeisong12ayeisondavidsuarezg12@gmail.com"];
+    $to = ["cristian.beltran@almacafe.com.co", "luz.toro@almacafe.com.co"];
     $subject = "Pedido #{$id} ha sido reembolsado desde el Marketplace";
     $message = "Se ha reembolsado un pedido desde el marketplace, el cual tiene la siguiente información: \n Número de pedido en MarketPlace - {$orderData[0]['orderId']}\n Número de pedido en SAP - {$orderData[0]['idSap']} \n Número de guía de transporte - {$orderData[0]['guide']} \n\n Por favor, valide esta información para realizar el respectivo proceso con el pedido.";
     wp_mail( $to, $subject, $message); 
@@ -1773,9 +1773,9 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
 
 /*----------------------------------------------------------------------*/
