@@ -1730,6 +1730,11 @@ const resendOrderToSap = async(orderNumber, requestOptions) => {
 	return data;
 }
 
+//func para formatear texto de productos
+const formatNumber = (number) => {
+    return new Intl.NumberFormat('es-CO', {minimumFractionDigits: 2}).format(number);
+}
+
 window.addEventListener("DOMContentLoaded", () => {
  // Hacemos peticion a API para extraer productos del pedido
  const myHeaders = new Headers();
@@ -1950,7 +1955,7 @@ window.addEventListener("DOMContentLoaded", () => {
                         <td>${productName}</td>
                         <td>${sku}</td>
                         <td>${quantity}</td>
-                        <td>$${price}</td>
+                        <td>$${formatNumber(price)}</td>
                     </tr>`;
                 })
                 tbody.innerHTML = tbodyHTML;

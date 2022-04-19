@@ -614,8 +614,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         	
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
-        $to = "comprocafedecolombia@cafedecolombia.com";
-        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderById[0]["mpOrder"]} despachado";
         $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido despachado.";
 
@@ -1533,7 +1533,7 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
 
       $wcEmail = WC()->mailer();
       $emailer = $wcEmail->emails['WC_Email_Customer_Completed_Order']; //Enviar una nota al usuario
-      $emailer->subject = "Tu pedido en Compro Café de Colombia ya ha sido completado"; //Sujeto del correo
+      $emailer->subject = "Tú pedido se ha entregado ¡Disfrúta tú café!"; //Sujeto del correo
       $emailer->heading = "Gracias por tu compra"; //Título del contenido del correo
       $emailer->trigger($value["orderId"]);
        
@@ -1773,9 +1773,9 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
 
 /*----------------------------------------------------------------------*/
