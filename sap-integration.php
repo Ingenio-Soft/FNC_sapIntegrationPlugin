@@ -615,7 +615,7 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
         //ENVIAMOS CORREO DE NOTIFICACION PARA PEDIDO DESPACHADO
         
         $to = "comprocafedecolombia@cafedecolombia.com";
-        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        // $to = ["yeisong12ayeisondavidsuarezg12@gmail.com", "alejandro.villamil@mentor360.net"];
         $subject = "Pedido #{$orderById[0]["mpOrder"]} despachado";
         $message = "El pedido #{$orderById[0]["mpOrder"]}, guía {$orderById[0]["transportGuide"]} ha sido despachado.";
 
@@ -728,8 +728,10 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                                                                             style='color:#636363;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:14px;line-height:150%;text-align:left'>
 
                                                                             <p style='margin:0 0 16px'>Hola, {$orderById[0]["customerFullName"]}. Solo para que lo sepas, hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido enviado a la dirección suministrada: </p>
+                                                                            <p>Puedes consultar el estado de entrega de tu pedido aquí: </p>
+                                                                            <a href='http://solex.blulogistics.net/solex/Home/GuiaRastreo?Numero={$orderById[0]["transportGuide"]}' style='color: white;background-color: #a66e66;padding: 10px 20px;border-radius: 15px;text-decoration: none;font-size: 15px;font-weight: bold;' target='blank'>Consultar</a>
                                                                             <h2
-                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;margin:0 0 18px;text-align:left'>
+                                                                                style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;text-align:left'>
                                                                                 <a href='https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post={$orderById[0]["mpOrder"]}&amp;action=edit'
                                                                                     style='font-weight:normal;text-decoration:underline;color:#a66e66'
                                                                                     target='_blank'
