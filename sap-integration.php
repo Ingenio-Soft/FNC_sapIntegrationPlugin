@@ -232,7 +232,7 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
