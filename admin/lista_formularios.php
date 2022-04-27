@@ -129,6 +129,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 	  orderW.docNumber,
 	  orderW.sapOrderDateShipped,
 	  orderW.sapStatus,
+	  orderW.sapSendMessage,
 	  orderAddress,
 	  city,
 	  email,
@@ -379,6 +380,10 @@ font-weight: bolder;
     align-items: center;
     height: 100%;
     width: 100%;   
+}
+
+#sapSendMessageCode{
+	background: rgba(0,0,0,.07);
 }
 
 @-webkit-keyframes truck-skew {
@@ -1441,6 +1446,7 @@ foreach ($resultCiudades as $key => $value) {
 					$sapOrderDateShipped = $value['fecha'];
 					$sapOrderId = $value['sapOrderId'];
 					$transportGuide = $value['transportGuide'];
+					$sapSendMessage = $value['sapSendMessage'];
 					
 					$fondo = "";
 					if($status == 1){
@@ -1478,6 +1484,7 @@ foreach ($resultCiudades as $key => $value) {
 					<td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td>
 					<td style='display: none;' class='orderContent' data-campo='sapOrderId'>$sapOrderId</td>
 					<td style='display: none;' class='orderContent' data-campo='transportGuide'>$transportGuide</td>
+					<td style='display: none;' class='orderContent' data-campo='sapSendMessage'>$sapSendMessage</td>
                     </tr>";
                 }
                }
@@ -1608,6 +1615,20 @@ foreach ($resultCiudades as $key => $value) {
     </tr>
 	</tbody>
 </table>
+
+<div class="row my-5">
+	<div class="col-12">
+		<div class="d-flex my-2 align-items-center">
+			<label for="checkSapSendMessage">Ver codigo enviado a SAP:</label>
+			<input class="mx-2" type="checkbox" name="checkSapSendMessage" id="checkSapSendMessage">
+		</div>
+		<div id="sapSendMessageCode" style="display: none;">
+			<pre>
+				<code class="orderInfo" data-campo="sapSendMessage">codigo de prueba</code>
+			</pre>
+		</div>
+	</div>
+</div>
 	
 	
 <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
@@ -1756,6 +1777,8 @@ window.addEventListener("DOMContentLoaded", () => {
     //tabla de productos
     const orderProductsTable = document.querySelector("#orderProductsTable");
 	const btnReenviar = document.querySelector(".btnReenviar");
+	const checkSapSendMessage = document.querySelector("#checkSapSendMessage");
+	const sapSendMessageCode = document.querySelector("#sapSendMessageCode");
 	
 
 
@@ -1804,6 +1827,16 @@ window.addEventListener("DOMContentLoaded", () => {
 			const novedadModal = document.querySelector(".Novedad-card");
 			const novedadModalExe = document.querySelector(".Novedad-card2");
 			const RetrasodModal = document.querySelector(".divRetrasp");
+
+			const codeElement = sapSendMessageCode.querySelector("code");
+			if(
+			codeElement.textContent !== null && 
+			codeElement.textContent !== null && 
+			codeElement.textContent !== undefined
+			){
+				let newCodeText = JSON.stringify(JSON.parse(codeElement.textContent), null, 5)
+				codeElement.textContent = newCodeText; 
+			}
 
 
 			  if (Exepedido == "1") {
@@ -1990,7 +2023,17 @@ window.addEventListener("DOMContentLoaded", () => {
             });
 
     })
-	 
+	//FUNCIONALIDAD PARA MOSTRAR CODIGO DE JSON ENVIADO A SAP
+	checkSapSendMessage.addEventListener("change", (e) => {
+
+
+
+		let isShow = e.target.checked ? "block" : "none"; 
+		sapSendMessageCode.setAttribute("style", `display: ${isShow};`)
+
+
+
+	})
 })
 
 

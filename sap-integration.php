@@ -46,6 +46,7 @@ $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
     sapErrorNotified TINYINT(1) NULL,
     exxeError TINYINT(1) NULL,
     sapReturnMessage TEXT NULL,
+    sapSendMessage TEXT NULL,
     CONSTRAINT sapwc_orders_PK PRIMARY KEY (id) 
   )
   ENGINE=MyISAM
@@ -231,7 +232,7 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
@@ -385,6 +386,7 @@ function estructureAndInsertOrderInfo($id){
             'sapStatus'=> "Enviado",
             'colorNumber'=> 4,
             'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
+            'sapSendMessage'=> json_encode($orderForRequestBody),
           ),
           array('mpOrder'=>$id)
         );
@@ -396,6 +398,7 @@ function estructureAndInsertOrderInfo($id){
             'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
             'colorNumber'=> 1,
             'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
+            'sapSendMessage'=> json_encode($orderForRequestBody),
           ),
           array('mpOrder'=>$id)
         );
@@ -1129,6 +1132,7 @@ add_action( 'rest_api_init', function () {
         "sapStatus" => "Enviado",
         "colorNumber" => 4,
         'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
+        'sapSendMessage'=> json_encode($orderForRequestBody),
       ), array("mpOrder" => $id) );
       //RESETEAMOS MENSAJES DE ERROR
       $orderMessagesTableName = "{$wpdb->prefix}sapwc_order_sapmessages";
@@ -1144,6 +1148,7 @@ add_action( 'rest_api_init', function () {
       $wpdb->update($ordersTableName, array(
         "colorNumber" => 1,
         "sapReturnMessage" => $response2JSON["responseBody"]["message"],
+        'sapSendMessage'=> json_encode($orderForRequestBody),
       ), array("mpOrder" => $id) );
       $data = array(
         "result" => false,
