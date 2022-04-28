@@ -232,7 +232,7 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
@@ -376,38 +376,62 @@ function estructureAndInsertOrderInfo($id){
     }
         //ENVIAMOS PEDIDO A SAP
 
-        $response2JSON = sendOrderToSap($orderForRequestBody);
+      //COLOCAR VALIDACION QUE NO SE ENVIE SIN ARRAY DE PRODUCTOS
 
-      if ($response2JSON["responseBody"]["code"] == 1) {
-        //ACTUALIZAMOS ESTADO SI SE ENVIA CORRECTAMENTE
-        $wpdb->update(
-          $ordersTableName, 
-          array(
-            'sapStatus'=> "Enviado",
-            'colorNumber'=> 4,
-            'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
-            'sapSendMessage'=> json_encode($orderForRequestBody),
-          ),
-          array('mpOrder'=>$id)
-        );
+      if (
+        is_array($orderForRequestBody["orderItems"]) 
+        && sizeof($orderForRequestBody["orderItems"]) > 0
+        ) {
+          $response2JSON = sendOrderToSap($orderForRequestBody);
+    
+          if ($response2JSON["responseBody"]["code"] == 1) {
+            //ACTUALIZAMOS ESTADO SI SE ENVIA CORRECTAMENTE
+            $wpdb->update(
+              $ordersTableName, 
+              array(
+                'sapStatus'=> "Enviado",
+                'colorNumber'=> 4,
+                'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
+                'sapSendMessage'=> json_encode($orderForRequestBody),
+              ),
+              array('mpOrder'=>$id)
+            );
+          }else{
+            //RETORNAMOS ERROR CUANDO NO SE PUDO ENVIAR CORRECTAMENTE A SAP. HACE APARECER BOTON REENVIAR
+            $wpdb->update(
+              $ordersTableName, 
+              array(
+                'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
+                'colorNumber'=> 1,
+                'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
+                'sapSendMessage'=> json_encode($orderForRequestBody),
+              ),
+              array('mpOrder'=>$id)
+            );
+            $to = "comprocafedecolombia@cafedecolombia.com";
+            // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+            $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
+            $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, por lo cual se requiere reenviar el pedido. Contáctese con el administrador de servidor SAP para más detalles sobre el inconveniente.";
+            wp_mail( $to, $subject, $message);
+          }
       }else{
-        //RETORNAMOS ERROR CUANDO NO SE PUDO ENVIAR CORRECTAMENTE A SAP. HACE APARECER BOTON REENVIAR
         $wpdb->update(
           $ordersTableName, 
           array(
-            'sapStatus'=> "No se pudo enviar pedido a SAP. Por favor, reenvíe el pedido.",
+            'sapStatus'=> "Los productos del pedido se han enviado de forma incorrecta a SAP.",
             'colorNumber'=> 1,
-            'sapReturnMessage'=> $response2JSON["responseBody"]["message"],
             'sapSendMessage'=> json_encode($orderForRequestBody),
           ),
           array('mpOrder'=>$id)
         );
-        $to = "comprocafedecolombia@cafedecolombia.com";
-        // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
+        // $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
-        $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, por lo cual se requiere reenviar el pedido. Contáctese con el administrador de servidor SAP para más detalles sobre el inconveniente.";
+        $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, esto es debido a que se ha generado sin pedidos o de manera incorrecta. Contáctese con el administrador para más detalles sobre el inconveniente.";
         wp_mail( $to, $subject, $message);
       }
+
+      
   }
 
 
@@ -1265,8 +1289,8 @@ add_action( 'rest_api_init', function () {
     {$wpdb->prefix}wc_order_product_lookup as or_prod
     INNER JOIN {$wpdb->prefix}wc_product_meta_lookup as prod_info
     ON IF(or_prod.variation_id != 0, 
-  or_prod.variation_id = prod_info.product_id, 
-  or_prod.product_id = prod_info.product_id) 
+      or_prod.variation_id = prod_info.product_id, 
+      or_prod.product_id = prod_info.product_id) 
     INNER JOIN {$wpdb->prefix}woocommerce_order_items as prod_extra_info
     ON or_prod.order_item_id = prod_extra_info.order_item_id
     INNER JOIN {$orderProductsMetaTableName} as orderPL
@@ -1291,10 +1315,14 @@ add_action( 'rest_api_init', function () {
     function changeOrderStatusTest($request){ 
 
       $id = $request["id"];
+      $resend = $request["resend"];
 
       $orderDataArray = extractOrderDataById($id);
       $orderForRequestBody = $orderDataArray["orderInfoJSON"];
-      $sapResponse = sendOrderToSap($orderForRequestBody);
+      $sapResponse = "No se reenvio a SAP";
+      if ($resend) {
+        $sapResponse = sendOrderToSap($orderForRequestBody);
+      }
 
       $data = array(
         "data" => $orderForRequestBody,
@@ -1672,6 +1700,22 @@ function getColorNumberFromExxeStatus($exxeStatus){
       $colorNumber = 4;
       break;
 
+    case "RECLAMACION EN TRAMITE*":
+      $colorNumber = 4;
+      break;
+    case "CONFIRMACION DE CITA*":
+      $colorNumber = 4;
+      break;
+    case "ENTREGO.DOCUMENTACIÓN PEND POR RECUPERAR (OPS)":
+      $colorNumber = 4;
+      break;
+    case "ENTREGO. DOCUMENTACIÓN PEND POR RECUPERAR (USAC)":
+      $colorNumber = 4;
+      break;
+    case "SOLICITUD DE CITA PARA LA ENTREGA":
+      $colorNumber = 4;
+      break;
+
     //ESTADOS DE ENTREGADO
 
     case 'LLEGO AL PUNTO DE ENTREGA':
@@ -1683,6 +1727,16 @@ function getColorNumberFromExxeStatus($exxeStatus){
       break;
 
     case 'ENTREGA EXXE':
+      $colorNumber = 5;
+      break;
+
+    case "ENTREGADO A REEXPEDIDORA*":
+      $colorNumber = 5;
+      break;
+    case "ENTREGADO, PEND RECUPERACIÓN DE LA DOCUMENTACIÓN":
+      $colorNumber = 5;
+      break;
+    case "ENTREGADO, PENDIENTE RETORNO DE DOCUMENTO REEXP":
       $colorNumber = 5;
       break;
 
@@ -1734,8 +1788,204 @@ function getColorNumberFromExxeStatus($exxeStatus){
     case 'GUIA CON CITA REPROGRAMADA':
       $colorNumber = 1;
       break;
-    
-    default:
+
+    case "NOVEDAD EN CARRETERA*":
+      $colorNumber = 1;
+      break;
+    case "MUCHO TURNO PARA LA ENTREGA*":
+      $colorNumber = 1;
+      break;
+    case "GUIA ANULADA*":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO CANCELA FLETE":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE POR INVENTARIO(SAC)":
+      $colorNumber = 1;
+      break;
+    case "DEVOLUCION POR NO ESTAR DESTINATARIO*":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO DESCONOCIDO":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE POR SOBRE STOCK":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE EL SABADO (OPS)":
+      $colorNumber = 1;
+      break;
+    case "LOCAL CERRADO*":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD EN LA RECUPERACION DE DOCUMENTOS(SAC)":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RETORNA DOCUMENTOS*":
+      $colorNumber = 1;
+      break;
+
+    case"DIRECCION ERRADA*":
+      $colorNumber = 1;
+      break;
+    case"AVERIA POR MAL EMBALAJE":
+      $colorNumber = 1;
+      break;
+    case"PEDIDO RECHAZADO POR INCOMPLETO O NO CORRESPONDE":
+      $colorNumber = 1;
+      break;
+    case"NOVEDAD CON LA ORDEN DE COMPRA":
+      $colorNumber = 1;
+      break;
+    case"DEVOLUCION POR CODIGO DE BARRAS(SAC)":
+      $colorNumber = 1;
+      break;
+    case"FALTANTE CONTRA FACTURA":
+      $colorNumber = 1;
+      break;
+    case"RETRASO POR INSPECCCION DE LAS AUTORIDADES*":
+      $colorNumber = 1;
+      break;
+    case"EVENTOS NACIONALES O REGIONALES / PROBLEMAS DE ORDEN PUBLICO*":
+      $colorNumber = 1;
+      break;
+    case"NO HAY AUTORIZACION DE ENTREGA(OPS)":
+      $colorNumber = 1;
+      break;
+    case"NOVEDAD CON LA FACTURA DEL CLIENTE":
+      $colorNumber = 1;
+      break;
+    case"MERCANCIA SOBRANTE CONTRA GUIA / FACTURA(OPS)":
+      $colorNumber = 1;
+      break;
+
+    case "AUTORIZACIÓN DE SALVAMENTO Y/O DESTRUCCIÓN":
+      $colorNumber = 1;
+      break;
+    case "ORDEN DE COMPRA CON FECHA VENCIDA ":
+      $colorNumber = 1;
+      break;
+    case "ORDEN DE COMPRA CON FECHA ANTICIPADA":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD EN LA RECUPERACIÓN DE DOCUMENTOS USAC*":
+      $colorNumber = 1;
+      break;
+    case "DEVOLUCIÓN POR NO ESTAR DESTINATARIO*":
+      $colorNumber = 1;
+      break;
+    case "NO HAY AUTORIZACION DE ENTREGA USAC(SERV DEDICADOS)*":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO CANCELA FLETE (USAC)*":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO DESCONOCIDO (USAC)":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE EL SÁBADO":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARO NO RECIBE POR INVENTARIO":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE POR SOBRE STOCK-PARCIAL (USAC)":
+      $colorNumber = 1;
+      break;
+    case "DEVOLUCIÓN POR CÓDIGO DE BARRAS":
+      $colorNumber = 1;
+      break;
+    case "DIRECCION ERRADA (USAC)":
+      $colorNumber = 1;
+      break;
+
+    case "FALTANTE CONTRA FACTURA (USAC)":
+      $colorNumber = 1;
+      break;
+    case "FALTANTE DE DOCUMENTOS (USAC)":
+      $colorNumber = 1;
+      break;
+    case "MERCANCIA SOBRANTE CONTRA GUIA / FACTURA":
+      $colorNumber = 1;
+      break;
+    case "NO HAY AUTORIZACIÓN DE ENTREGAR PARCIAL(USAC)":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD CON LA FACTURA DEL CLIENTE.(USAC)":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD CON LA ORDEN DE COMPRA PARCIAL (USAC)":
+      $colorNumber = 1;
+      break;
+    case "PEDIDO RECHAZADO POR INCOMPLETO O NO CORRESPONDE PARCIAL (USAC)":
+      $colorNumber = 1;
+      break;
+    case "FALTANTE DE DOCUMENTOS (SAC)":
+      $colorNumber = 1;
+      break;
+    case "MERCANCIA SOBRANTE CONTRA GUIA / FACTURA (SAC)":
+      $colorNumber = 1;
+      break;
+    case "NO HAY AUTORIZACIÓN DE ENTREGAR (SAC)":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD CON LA FACTURA DEL CLIENTE (SAC)":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD CON LA ORDEN DE COMPRA (SAC)":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE POR SOBRE STOCK TOTAL":
+      $colorNumber = 1;
+      break;
+    case "NO HAY AUTORIZACIÓN DE ENTREGAR TOTAL":
+      $colorNumber = 1;
+      break;
+    case "PEDIDO RECHAZADO POR INCOMPLETO O NO CORRESPONDE TOTAL":
+      $colorNumber = 1;
+      break;
+    case "NOVEDAD CON LA ORDEN DE COMPRA TOTAL":
+      $colorNumber = 1;
+      break;
+    case "DEVOLUCIÓN POR CÓDIGO DE BARRAS TOTAL":
+      $colorNumber = 1;
+      break;
+    case "AVERIA POR MAL EMBALAJE TOTAL":
+      $colorNumber = 1;
+      break;
+    case "DESTINATARIO NO RECIBE EN HORAS HABILES(Aplica de 7 am a 5 pm)":
+      $colorNumber = 1;
+      break;
+    case "ERROR EN ROTULACIÓN":
+      $colorNumber = 1;
+      break;
+    case "LOCAL CERRADO (APLICA DESPUÉS DE 7AM Y ANTES DE LAS 6PM)":
+      $colorNumber = 1;
+      break;
+    case "MERCANCIA RETENIDA POR LAS AUTORIDADES":
+      $colorNumber = 1;
+      break;
+    case "NO HAY AUTORIZACION DE ENTREGAR":
+      $colorNumber = 1;
+      break;
+    case "SOLICITUD DE ANULACION":
+      $colorNumber = 1;
+      break;
+    case "RETRASO POR INPECCIÓN DE LAS AUTORIDADES":
+      $colorNumber = 1;
+      break;
+    case "ZONA DE ALTO RIESGO":
+      $colorNumber = 1;
+      break;
+    case "FALTAN DATOS EN LA DIRECCION":
+      $colorNumber = 1;
+      break;
+    case "NO RESIDE":
+      $colorNumber = 1;
+      break;
+
+     default:
     $colorNumber = 0;
       break;
   }
