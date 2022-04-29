@@ -112,6 +112,10 @@ $cantidad = floatval(sizeof($resultado));
 $cantidadPaginas = ceil($cantidad / $por_pagina);
 
 
+$queryAllOrdersFull = "SELECT count(1) as cantidad FROM $ordersInternTable";
+$resultAllOrdersFull = $wpdb->get_results($queryAllOrdersFull, ARRAY_A);
+
+
 //queries:
 
 
@@ -1295,7 +1299,7 @@ font-weight: bolder;
                     <h3> Total pedidos</h3>
                     <p>
 					<?php
-					echo sizeof($cantidadAll);
+					echo $resultAllOrdersFull[0]["cantidad"];
 					?>
 					</p>
                 </div>
