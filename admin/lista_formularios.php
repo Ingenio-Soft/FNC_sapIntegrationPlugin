@@ -1834,7 +1834,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 			const codeElement = sapSendMessageCode.querySelector("code");
 			if(
-			codeElement.textContent !== null && 
+			codeElement.textContent !== "" && 
 			codeElement.textContent !== null && 
 			codeElement.textContent !== undefined
 			){
@@ -1925,7 +1925,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 				})
 				cardSap.setAttribute("style", "background-image: linear-gradient(to left top, #e53e3e, #ec504f, #f26160, #f77170, #fc8181);");
-				if (sapStatus == "no se pudo enviar pedido a sap. por favor, reenvíe el pedido.") {
+				if (sapStatus == "no se pudo enviar pedido a sap. por favor, reenvíe el pedido." || sapStatus == "Los productos del pedido se han enviado de forma incorrecta a SAP.") {
 					novedadModal.setAttribute("style", "display: none;");
 				}else{
 					novedadModal.setAttribute("style", "display: block;");
