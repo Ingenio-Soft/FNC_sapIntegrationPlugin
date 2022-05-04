@@ -424,7 +424,7 @@ function estructureAndInsertOrderInfo($id){
           ),
           array('mpOrder'=>$id)
         );
-        $to = "comprocafedecolombia@cafedecolombia.com";
+        $to = ["comprocafedecolombia@cafedecolombia.com", "fredy.villamil@mentor360.net", "alejandro.villamil@mentor360.net"];
         // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
         $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, esto es debido a que se ha generado sin pedidos o de manera incorrecta. Contáctese con el administrador para más detalles sobre el inconveniente.";
