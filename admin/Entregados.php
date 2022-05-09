@@ -55,6 +55,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
       orderW.sapOrderDateShipped,
       orderW.totalPrice,
       orderW.exxeStatus,
+      orderW.docNumber,
 	  orderAddress,
 	  city,
 	  email,
@@ -352,12 +353,13 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
           $telefono = $value['phoneNumber'];
           $fpedido = $value['orderDate'];
           $fenvio = $value['sapOrderDateShipped'];
-          $precio = $value['totalPrice'];
-					$status = $value['colorNumber'];
-					$direccion = $value['orderAddress'];
-					$ciudad = $value['city'];
-					$correo = $value['email'];
-					$departamento = $value['department'];
+          $precio = "$" . number_format($value['totalPrice'], 2, ",", ".");
+		$status = $value['colorNumber'];
+		$direccion = $value['orderAddress'];
+		$ciudad = $value['city'];
+		$correo = $value['email'];
+		$departamento = $value['department'];
+		$docNumber = $value['docNumber'];
 
           echo"
           <tr>
@@ -375,6 +377,7 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
 					<td style='display: none;' class='orderContent' data-campo='ciudad'>$ciudad</td>
 					<td style='display: none;' class='orderContent' data-campo='correo'>$correo</td>
 				  <td style='display: none;' class='orderContent' data-campo='departamento'>$departamento</td> 
+				  <td style='display: none;' class='orderContent' data-campo='docNumber'>$docNumber</td> 
 
 				 
           </tr>";
@@ -440,20 +443,22 @@ $cantidadPaginas = ceil($cantidad / $por_pagina);
     </tr>
 	</tbody>
 </table>
-        <table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
-          <thead>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Tarjeta madre 2.0</td>
-              <td>1</td>
-              <td>$10.00</td>
-            </tr>
-          </tbody>
-        </table>
+<table id="orderProductsTable" class="wp-list-table widefat fixed  pages">
+    <thead>
+	<th>Producto</th>
+	<th>SKU</th>
+    <th>Unidades del producto</th>
+    <th>Total valor productos</th>
+    </thead>
+	<tbody>
+    <tr>
+        <td>Tarjeta madre 2.0</td>
+        <td>45983</td>
+        <td>1</td>
+        <td>$10.00</td>
+    </tr>
+	</tbody>
+</table>
       </div>
     </div>
   </div>
@@ -524,6 +529,10 @@ inputPage.addEventListener("keypress", (e) => {
 	}
 })
 
+const formatNumber = (number) => {
+    return new Intl.NumberFormat('es-CO', {minimumFractionDigits: 2}).format(number);
+}
+
 //funcionalidad para ver info del pedido y productos en modal al abrirlo
 window.addEventListener("DOMContentLoaded", () => {
 
@@ -579,15 +588,16 @@ window.addEventListener("DOMContentLoaded", () => {
             `;
             let tbodyHTML = "";
 
-            fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/products/${orderNumber}`, requestOptions)
+			fetch(`https://${document.domain}/wp-json/sapintegration/v1/orders/products/${orderNumber}`, requestOptions)
             .then(response => response.json())
             .then(result => {
-                result?.products.forEach(({productName, quantity, price}) => {
+                result?.products.forEach(({productName, quantity, price, sku}) => {
                     tbodyHTML += 
                     ` <tr>
                         <td>${productName}</td>
+                        <td>${sku}</td>
                         <td>${quantity}</td>
-                        <td>$${price}</td>
+                        <td>$${formatNumber(price)}</td>
                     </tr>`;
                 })
                 tbody.innerHTML = tbodyHTML;
