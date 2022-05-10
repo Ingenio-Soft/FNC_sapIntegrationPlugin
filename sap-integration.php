@@ -1564,7 +1564,9 @@ function sendEmailByOrderStatus($colorNumber, $statusField, $isFifteenDays = fal
     foreach ($resultsEntregados as $key => $value) {
 
       $ordersWoocommerceTableName = "{$wpdb->prefix}wc_order_stats";
-      $updateOrderStatus = $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-completed"), array("order_id" => $value["orderId"]));
+      // $updateOrderStatus = $wpdb->update($ordersWoocommerceTableName, array("status" => "wc-completed"), array("order_id" => $value["orderId"]));
+      $orderClass = new WC_Order( $value["orderId"] );
+      $orderClass->update_status( 'completed' );
 
       $wcEmail = WC()->mailer();
       $emailer = $wcEmail->emails['WC_Email_Customer_Completed_Order']; //Enviar una nota al usuario
