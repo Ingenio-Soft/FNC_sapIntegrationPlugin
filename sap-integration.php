@@ -428,7 +428,10 @@ function estructureAndInsertOrderInfo($id){
         // $to = "yeisong12ayeisondavidsuarezg12@gmail.com";
         $subject = "Pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]} no pudo enviarse a SAP";
         $message = "El pedido #{$orderHeadersAndCustomerResults[0]["mpOrder"]}, guía {$orderHeadersAndCustomerResults[0]["transportGuide"]} no ha podido enviarse correctamente a SAP al momento de realizarse el pago, esto es debido a que se ha generado sin pedidos o de manera incorrecta. Contáctese con el administrador para más detalles sobre el inconveniente.";
-        wp_mail( $to, $subject, $message);
+        if ($orderHeadersAndCustomerResults[0]["mpOrder"] != null && 
+        $orderHeadersAndCustomerResults[0]["mpOrder"] != "" ) {
+          wp_mail( $to, $subject, $message);
+        }
       }
 
       
