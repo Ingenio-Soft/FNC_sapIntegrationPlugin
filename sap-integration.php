@@ -232,7 +232,7 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
@@ -2036,9 +2036,9 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
-  // wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
+  wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
 
 /*----------------------------------------------------------------------*/
