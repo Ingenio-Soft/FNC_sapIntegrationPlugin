@@ -201,7 +201,7 @@ function extractOrderDataById($id){
     "customer" => array(
       "name" => $order_data['billing']['first_name'] . " " . $order_data['billing']['last_name'],
       "docNumber" => $orderHeadersAndCustomerResults[0]["docNumber"], //falta docNumber
-      "address" => $order_data['shipping']['address_1'],
+      "address" => $order_data['shipping']['address_1'] . ' ' . $order_data['shipping']['address_2'],
       "city" => mb_strtoupper($nameCity, "utf-8"),
       "department" => mb_strtoupper($nameCity, "utf-8") == "BOGOTÁ D.C." ? "11" : $codigoDepartment,
       "phoneNumber" => $order_data['billing']['phone'],
@@ -232,7 +232,8 @@ function sendOrderToSap($orderForRequestBody){
   );
 
   //URL DE PETICION
-  $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
+  // $sapEndpointUrl = "serviciosrest.federaciondecafeteros.org";
+  $sapEndpointUrl = "serviciosrestqa.federaciondecafeteros.org";
 
   $sapCredentialsLoginJSON = json_encode($sapCredentialsLogin);
 
@@ -758,8 +759,8 @@ function handlerOrderStatusByEndpoint($id, $isProcessed, $sapId, $status, $messa
                                                                             style='color:#636363;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:14px;line-height:150%;text-align:left'>
 
                                                                             <p style='margin:0 0 16px'>Hola, {$orderById[0]["customerFullName"]}. Solo para que lo sepas, hemos recibido tu pedido #{$orderById[0]["mpOrder"]}, y ya ha sido enviado a la dirección suministrada: </p>
-                                                                            <p>Puedes consultar el estado de entrega de tu pedido aquí: </p>
-                                                                            <a href='http://solex.blulogistics.net/solex/Home/GuiaRastreo?Numero={$orderById[0]["transportGuide"]}' style='color: white;background-color: #a66e66;padding: 10px 20px;border-radius: 15px;text-decoration: none;font-size: 15px;font-weight: bold;' target='blank'>Consultar</a>
+                                                                            <p>Haz clic en el siguiente botón para hacer seguimiento a tu pedido: </p>
+                                                                            <a href='http://solex.blulogistics.net/solex/Home/GuiaRastreo?Numero={$orderById[0]["transportGuide"]}' style='color: white;background-color: #a66e66;padding: 10px 20px;border-radius: 15px;text-decoration: none;font-size: 15px;font-weight: bold;margin:39%;' target='blank'>Consultar</a>
                                                                             <h2
                                                                                 style='color:#a66e66;display:block;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size:18px;font-weight:bold;line-height:130%;text-align:left'>
                                                                                 <a href='https://{$_SERVER['SERVER_NAME']}/wp-admin/post.php?post={$orderById[0]["mpOrder"]}&amp;action=edit'
@@ -1262,12 +1263,13 @@ add_action( 'rest_api_init', function () {
     $emailer = $wcEmail->emails['WC_Email_Customer_Refunded_Order']; //Enviar una nota al usuario
     $emailer->subject = "Tu pedido No. {$id} ha sido reembolsado"; //Sujeto del correo
     $emailer->heading = "Pedido reembolsado No. {$id}"; //Título del contenido del correo
-    $emailer->trigger($id);
+    /*cambio con alejo (se comenta linea)*/ // $emailer->trigger($id);
     //ENVIAMOS CORREO A SAP NOTIFICANDO EL PEDIDO REEMBOLSADO
     // $to = ["yeisong12ayeisondavidsuarezg12@gmail.com"];
-    $to = ["cristian.beltran@almacafe.com.co", "luz.toro@almacafe.com.co"];
-    $subject = "Pedido #{$id} ha sido reembolsado desde el Marketplace";
-    $message = "Se ha reembolsado un pedido desde el marketplace, el cual tiene la siguiente información: \n Número de pedido en MarketPlace - {$orderData[0]['orderId']}\n Número de pedido en SAP - {$orderData[0]['idSap']} \n Número de guía de transporte - {$orderData[0]['guide']} \n\n Por favor, valide esta información para realizar el respectivo proceso con el pedido.";
+    /*cambio con alejo (se comenta linea)*/ // $to = ["cristian.beltran@almacafe.com.co", "luz.toro@almacafe.com.co"];
+    /*cambio con alejo (se coloca correo de alejandro)*/ $to = "alejandro.villamil@mentor360.net";
+    $subject = "Pedido #{$id} ha sido eliminado desde el Marketplace";
+    $message = "Se ha eliminado un pedido desde el marketplace, el cual tiene la siguiente información: \n Número de pedido en MarketPlace - {$orderData[0]['orderId']}\n Número de pedido en SAP - {$orderData[0]['idSap']} \n Número de guía de transporte - {$orderData[0]['guide']} \n\n Por favor, valide esta información para realizar el respectivo proceso con el pedido.";
     wp_mail( $to, $subject, $message); 
     }else{
       $data = array("result" => false);
@@ -2036,7 +2038,7 @@ function getExxeStatusByTransportGuide($transportGuide){
 add_action( 'sap_exxe_integration_cron', 'exxeCron');
 if ( ! wp_next_scheduled( 'sap_exxe_integration_cron' ) ) {
   //scheduleamos a 5 segundos - DESARROLLO
-  // wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
+  //wp_schedule_event( time(), 'five_seconds', 'sap_exxe_integration_cron' );
   //scheduleamos a 1hora
   wp_schedule_event( time(), 'hourly', 'sap_exxe_integration_cron' );
 }
@@ -2127,5 +2129,3 @@ add_action('admin_enqueue_scripts','EncolarCSS');
 
 register_activation_hook(__FILE__, 'ActivateSAPIntegration');
 register_deactivation_hook(__FILE__, 'DesactivateSAPIntegration');
-
-//hola
